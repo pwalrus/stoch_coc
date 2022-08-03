@@ -1,6 +1,6 @@
 
 
-enum CCExpression {
+pub enum CCExpression {
     Var(String),
     Sq,
     Star,
@@ -12,7 +12,7 @@ enum CCExpression {
 
 impl CCExpression {
 
-    fn to_latex(&self) -> String {
+    pub fn to_latex(&self) -> String {
         match self {
             CCExpression::Var(x) => x.to_string(),
             CCExpression::Sq => String::from("\\square"),
