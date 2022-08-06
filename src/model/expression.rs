@@ -45,6 +45,23 @@ impl CCExpression {
             _other => vec![self.clone()],
         }
     }
+
+    pub fn free_var(&self) -> Vec<String> {
+        match self {
+            CCExpression::Var(x) => vec![x.clone()],
+            CCExpression::Application(left, right) => {
+                [left.free_var(), right.free_var()].concat()
+            }
+            CCExpression::Abs(arg, _, ret) => {
+                ret.free_var().into_iter().filter(
+                    |x| x != arg
+                    ).collect()
+            }
+            _other => vec![],
+        }
+
+    }
+
 }
 
 impl Clone for CCExpression {
@@ -150,6 +167,32 @@ mod tests {
         assert_eq!(terms, vec![
                    String::from("\\lambda x : A . apple banana"),
                    String::from("\\lambda x : A . apple"),
+                   String::from("apple"),
+                   String::from("banana")
+        ]);
+    }
+
+    #[test]
+    fn free_var_simple() {
+        let expr1 = CCExpression::Var(String::from("A"));
+        let terms: Vec<String> = expr1.free_var();
+        assert_eq!(terms, vec![
+                   String::from("A")
+        ]);
+    }
+
+    #[test]
+    fn free_var_bigger() {
+        let expr1 = CCExpression::Var(String::from("A"));
+        let expr2 = CCExpression::Var(String::from("banana"));
+        let expr3 = CCExpression::Var(String::from("apple"));
+        let expr4 = CCExpression::Abs(String::from("x"), 
+                                      Box::new(expr1),
+                                      Box::new(expr3));
+        let expr5 = CCExpression::Application(Box::new(expr4), 
+                                              Box::new(expr2));
+        let terms: Vec<String> = expr5.free_var();
+        assert_eq!(terms, vec![
                    String::from("apple"),
                    String::from("banana")
         ]);
