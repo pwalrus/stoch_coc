@@ -1,4 +1,5 @@
 
+#[derive(Debug,PartialEq)]
 pub enum CCExpression {
     Var(String),
     Sq,
