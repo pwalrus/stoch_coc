@@ -136,6 +136,44 @@ impl TokenConsumer for SqConsumer {
     }
 }
 
+struct AbsConsumer {}
+
+impl TokenConsumer for AbsConsumer {
+    fn consume(&self, tokens: &[String]) -> Option<Consumed> {
+        if tokens.len() < 4 || tokens[0] != "\\lambda" {
+            return None;
+        }
+        for (idx1, token1) in tokens.iter().enumerate() {
+            if token1 == ":" && all_alpha_num(&tokens[1..idx1]) {
+                for (idx2, token2) in tokens.iter().enumerate() {
+                    if idx2 > idx1 + 1 && token2 == "." {
+                        let type_expr = find_expression(
+                            &tokens[idx1+1..idx2]);
+                        let ret_expr = find_expression(&tokens[idx2+1..]);
+                        if let Some(t) = type_expr {
+                            if let Some(ret) = ret_expr {
+                                return Some(Consumed {
+                                    expr: CCExpression::Abs(
+                                        tokens[1].clone(),
+                                        Box::new(t),
+                                        Box::new(ret)
+                                    ),
+                                    remain: vec![]
+
+                                });
+                            }
+                       }
+
+                    }
+                }
+            }
+
+        }
+
+        return None
+    }
+}
+
 fn consume_expressions(tokens: &[String]) -> Vec<CCExpression> {
     if tokens.len() == 0 {
         return vec![];
@@ -144,7 +182,8 @@ fn consume_expressions(tokens: &[String]) -> Vec<CCExpression> {
         &VarConsumer{},
         &ParenConsumer{},
         &StarConsumer{},
-        &SqConsumer{}
+        &SqConsumer{},
+        &AbsConsumer{}
     ];
 
     for consumer in consumers {
@@ -247,6 +286,16 @@ mod tests {
         if let Some(x) = tree {
             assert_eq!(x.to_latex(), String::from("\\square"));
             assert!(matches!(x, CCExpression::Sq {..}));
+        }
+    }
+
+    #[test]
+    fn parse_abs() {
+        let tree = parse(&String::from("\\lambda x:A.y "));
+        assert_ne!(tree, None);
+        if let Some(x) = tree {
+            assert_eq!(x.to_latex(), String::from("\\lambda x : A . y"));
+            assert!(matches!(x, CCExpression::Abs {..}));
         }
     }
 }
