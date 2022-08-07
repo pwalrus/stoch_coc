@@ -8,6 +8,8 @@ fn all_alpha_num(tokens: &[String]) -> bool {
         String::from("("),
         String::from(")"),
         String::from("\\lambda"),
+        String::from("\\ast"),
+        String::from("\\square"),
         String::from("\\prod")];
     let assessment: Option<bool> = tokens.into_iter().map(
         |t| !meta_token.contains(t)
@@ -65,53 +67,95 @@ struct Consumed {
     remain: Vec<String>
 }
 
-fn consume_var(tokens: &[String]) -> Option<Consumed> {
-    if all_alpha_num(&tokens[0..1]) {
-        return Some(Consumed { expr: CCExpression::Var(tokens[0].clone()), 
-            remain: tokens[1..].to_vec()})
-    } else {
-        return None
-    }
-
+trait TokenConsumer {
+    fn consume(&self, tokens: &[String]) -> Option<Consumed>;
 }
 
-fn consume_paren(tokens: &[String]) -> Option<Consumed> {
-    if tokens.len() == 0 || tokens[0] != "(" {
-        return None;
-    }
-    for (idx, token) in tokens.iter().enumerate() {
-        if token == ")" && is_balanced(&tokens[0..idx+1]) {
-            let inner = find_expression(&tokens[1..idx]);
-            if let Some(x) = inner {
-                return Some(Consumed {
-                    expr: x,
-                    remain: tokens[idx+1..].to_vec()
-                });
-            }
+struct VarConsumer {}
+
+impl TokenConsumer for VarConsumer {
+
+    fn consume(&self, tokens: &[String]) -> Option<Consumed> {
+        if all_alpha_num(&tokens[0..1]) {
+            return Some(Consumed { 
+                expr: CCExpression::Var(tokens[0].clone()), 
+                remain: tokens[1..].to_vec()})
+        } else {
+            return None
         }
     }
+}
 
-    return None
+struct ParenConsumer {}
+
+impl TokenConsumer for ParenConsumer {
+    fn consume(&self, tokens: &[String]) -> Option<Consumed> {
+        if tokens.len() == 0 || tokens[0] != "(" {
+            return None;
+        }
+        for (idx, token) in tokens.iter().enumerate() {
+            if token == ")" && is_balanced(&tokens[0..idx+1]) {
+                let inner = find_expression(&tokens[1..idx]);
+                if let Some(x) = inner {
+                    return Some(Consumed {
+                        expr: x,
+                        remain: tokens[idx+1..].to_vec()
+                    });
+                }
+            }
+        }
+
+        return None
+    }
+}
+
+struct StarConsumer {}
+
+impl TokenConsumer for StarConsumer {
+    fn consume(&self, tokens: &[String]) -> Option<Consumed> {
+        if tokens.len() == 0 || tokens[0] != "\\ast" {
+            return None
+        }
+
+        return Some(Consumed { 
+            expr: CCExpression::Star, 
+            remain: tokens[1..].to_vec()})
+    }
+}
+
+struct SqConsumer {}
+
+impl TokenConsumer for SqConsumer {
+    fn consume(&self, tokens: &[String]) -> Option<Consumed> {
+        if tokens.len() == 0 || tokens[0] != "\\square" {
+            return None
+        }
+        return Some(Consumed { 
+            expr: CCExpression::Sq,
+            remain: tokens[1..].to_vec()})
+    }
 }
 
 fn consume_expressions(tokens: &[String]) -> Vec<CCExpression> {
     if tokens.len() == 0 {
         return vec![];
-    } else if let Some(x) = consume_var(tokens) {
-        let remain = consume_expressions(&x.remain);
+    }
+    let consumers: Vec<&dyn TokenConsumer> = vec![
+        &VarConsumer{},
+        &ParenConsumer{},
+        &StarConsumer{},
+        &SqConsumer{}
+    ];
 
-        if x.remain.len() == 0 {
-            return vec![x.expr];
-        } else if remain.len() > 0 {
-            return [vec![x.expr], remain].concat();
-        }
-    } else if let Some(x) = consume_paren(tokens) {
-        let remain = consume_expressions(&x.remain);
+    for consumer in consumers {
+        if let Some(x) = consumer.consume(tokens) {
+            let remain = consume_expressions(&x.remain);
 
-        if x.remain.len() == 0 {
-            return vec![x.expr];
-        } else if remain.len() > 0 {
-            return [vec![x.expr], remain].concat();
+            if x.remain.len() == 0 {
+                return vec![x.expr];
+            } else if remain.len() > 0 {
+                return [vec![x.expr], remain].concat();
+            }
         }
     }
     return vec![]
@@ -183,6 +227,26 @@ mod tests {
         assert_ne!(tree, None);
         if let Some(x) = tree {
             assert_eq!(x.to_latex(), String::from("x (a b) y"));
+        }
+    }
+
+    #[test]
+    fn parse_star() {
+        let tree = parse(&String::from("\\ast"));
+        assert_ne!(tree, None);
+        if let Some(x) = tree {
+            assert_eq!(x.to_latex(), String::from("\\ast"));
+            assert!(matches!(x, CCExpression::Star {..}));
+        }
+    }
+
+    #[test]
+    fn parse_sq() {
+        let tree = parse(&String::from("\\square"));
+        assert_ne!(tree, None);
+        if let Some(x) = tree {
+            assert_eq!(x.to_latex(), String::from("\\square"));
+            assert!(matches!(x, CCExpression::Sq {..}));
         }
     }
 }
