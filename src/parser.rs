@@ -1,7 +1,7 @@
 
 use crate::model::expression::CCExpression;
 
-fn all_alpha_num(tokens: &Vec<String>) -> bool {
+fn all_alpha_num(tokens: &[String]) -> bool {
     let meta_token: Vec<String> = vec![
         String::from("."), 
         String::from(":"),
@@ -18,7 +18,7 @@ fn all_alpha_num(tokens: &Vec<String>) -> bool {
     return false
 }
 
-fn is_balanced(tokens: &Vec<String>) -> bool {
+fn is_balanced(tokens: &[String]) -> bool {
     let mut balance: i32 = 0;
     for token in tokens {
         if token == "(" {
@@ -65,8 +65,8 @@ struct Consumed {
     remain: Vec<String>
 }
 
-fn consume_var(tokens: &Vec<String>) -> Option<Consumed> {
-    if all_alpha_num(&tokens[0..1].to_vec()) {
+fn consume_var(tokens: &[String]) -> Option<Consumed> {
+    if all_alpha_num(&tokens[0..1]) {
         return Some(Consumed { expr: CCExpression::Var(tokens[0].clone()), 
             remain: tokens[1..].to_vec()})
     } else {
@@ -75,11 +75,37 @@ fn consume_var(tokens: &Vec<String>) -> Option<Consumed> {
 
 }
 
+fn consume_paren(tokens: &[String]) -> Option<Consumed> {
+    if tokens.len() == 0 || tokens[0] != "(" {
+        return None;
+    }
+    for (idx, token) in tokens.iter().enumerate() {
+        if token == ")" && is_balanced(&tokens[0..idx+1]) {
+            let inner = find_expression(&tokens[1..idx]);
+            if let Some(x) = inner {
+                return Some(Consumed {
+                    expr: x,
+                    remain: tokens[idx+1..].to_vec()
+                });
+            }
+        }
+    }
 
-fn consume_expressions(tokens: &Vec<String>) -> Vec<CCExpression> {
+    return None
+}
+
+fn consume_expressions(tokens: &[String]) -> Vec<CCExpression> {
     if tokens.len() == 0 {
         return vec![];
     } else if let Some(x) = consume_var(tokens) {
+        let remain = consume_expressions(&x.remain);
+
+        if x.remain.len() == 0 {
+            return vec![x.expr];
+        } else if remain.len() > 0 {
+            return [vec![x.expr], remain].concat();
+        }
+    } else if let Some(x) = consume_paren(tokens) {
         let remain = consume_expressions(&x.remain);
 
         if x.remain.len() == 0 {
@@ -91,7 +117,7 @@ fn consume_expressions(tokens: &Vec<String>) -> Vec<CCExpression> {
     return vec![]
 }
 
-fn find_expression(tokens: &Vec<String>) -> Option<CCExpression> {
+fn find_expression(tokens: &[String]) -> Option<CCExpression> {
     let exprs = consume_expressions(tokens);
     if exprs.len() == 0 {
         return None;
@@ -146,8 +172,17 @@ mod tests {
         let tree = parse(&String::from("x y"));
         assert_ne!(tree, None);
         if let Some(x) = tree {
-            assert_eq!(x.to_latex(), String::from("x y"))
+            assert_eq!(x.to_latex(), String::from("x y"));
+            assert!(matches!(x, CCExpression::Application { .. }));
         }
     }
 
+    #[test]
+    fn parse_paren() {
+        let tree = parse(&String::from("x (a b) y"));
+        assert_ne!(tree, None);
+        if let Some(x) = tree {
+            assert_eq!(x.to_latex(), String::from("x (a b) y"));
+        }
+    }
 }

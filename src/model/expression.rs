@@ -18,7 +18,11 @@ impl CCExpression {
             CCExpression::Sq => String::from("\\square"),
             CCExpression::Star => String::from("\\ast"),
             CCExpression::Application(left, right) => {
-                left.to_latex() + " " + &right.to_latex()
+                if let CCExpression::Var(_) = **right {
+                    left.to_latex() + " " + &right.to_latex()
+                } else {
+                    left.to_latex() + " (" + &right.to_latex() + ")"
+                }
             }
             CCExpression::Abs(arg, t, ret) => {
                 String::from("\\lambda ") + arg + " : " + &t.to_latex()
