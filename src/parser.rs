@@ -140,7 +140,8 @@ struct AbsConsumer {}
 
 impl TokenConsumer for AbsConsumer {
     fn consume(&self, tokens: &[String]) -> Option<Consumed> {
-        if tokens.len() < 4 || tokens[0] != "\\lambda" {
+        if tokens.len() < 4 || 
+            (tokens[0] != "\\lambda" && tokens[0] != "\\prod") {
             return None;
         }
         for (idx1, token1) in tokens.iter().enumerate() {
@@ -152,15 +153,25 @@ impl TokenConsumer for AbsConsumer {
                         let ret_expr = find_expression(&tokens[idx2+1..]);
                         if let Some(t) = type_expr {
                             if let Some(ret) = ret_expr {
-                                return Some(Consumed {
-                                    expr: CCExpression::Abs(
-                                        tokens[1].clone(),
-                                        Box::new(t),
-                                        Box::new(ret)
-                                    ),
-                                    remain: vec![]
-
-                                });
+                                if tokens[0] == "\\lambda" {
+                                    return Some(Consumed {
+                                        expr: CCExpression::Abs(
+                                            tokens[1].clone(),
+                                            Box::new(t),
+                                            Box::new(ret)
+                                        ),
+                                        remain: vec![]
+                                    });
+                                } else {
+                                    return Some(Consumed {
+                                        expr: CCExpression::TypeAbs(
+                                            tokens[1].clone(),
+                                            Box::new(t),
+                                            Box::new(ret)
+                                        ),
+                                        remain: vec![]
+                                    });
+                                }
                             }
                        }
 
@@ -296,6 +307,16 @@ mod tests {
         if let Some(x) = tree {
             assert_eq!(x.to_latex(), String::from("\\lambda x : A . y"));
             assert!(matches!(x, CCExpression::Abs {..}));
+        }
+    }
+
+    #[test]
+    fn parse_type_abs() {
+        let tree = parse(&String::from("\\prod x:A.B "));
+        assert_ne!(tree, None);
+        if let Some(x) = tree {
+            assert_eq!(x.to_latex(), String::from("\\prod x : A . B"));
+            assert!(matches!(x, CCExpression::TypeAbs {..}));
         }
     }
 }
