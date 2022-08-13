@@ -1,26 +1,28 @@
 
 use super::expression::{CCExpression};
 
-struct Statement {
-    subject: CCExpression,
-    s_type: CCExpression
+#[derive(PartialEq,Debug)]
+pub struct Statement {
+    pub subject: CCExpression,
+    pub s_type: CCExpression
 }
 
 impl Statement {
 
-    fn to_latex(&self) -> String {
+    pub fn to_latex(&self) -> String {
         return self.subject.to_latex() + " : " + &self.s_type.to_latex()
     }
 }
 
-struct Judgement {
+#[derive(PartialEq,Debug)]
+pub struct Judgement {
     context: Vec<Statement>,
     statement: Statement
 }
 
 impl Judgement {
 
-    fn to_latex(&self) -> String {
+    pub fn to_latex(&self) -> String {
         let output = self.context.iter().map(
                 |x| x.to_latex()
             ).reduce(

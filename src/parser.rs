@@ -1,8 +1,13 @@
 
 use crate::model::expression::CCExpression;
+use crate::model::judgement::Statement;
+use crate::model::judgement::Judgement;
+
 
 fn all_alpha_num(tokens: &[String]) -> bool {
     let meta_token: Vec<String> = vec![
+        String::from(","), 
+        String::from("\\vdash"), 
         String::from("."), 
         String::from(":"),
         String::from("("),
@@ -226,11 +231,32 @@ fn find_expression(tokens: &[String]) -> Option<CCExpression> {
     return Some(output)
 }
 
-fn parse(expr: &str) -> Option<CCExpression> {
+pub fn parse_statement(expr: &str) -> Option<Statement> {
+    let tokens = tokenize(expr);
+    for (idx, token) in tokens.iter().enumerate() {
+        if token == ":" {
+            let subject = find_expression(&tokens[0..idx]);
+            let s_type = find_expression(&tokens[idx+1..]);
+            if let Some(s) = subject {
+                if let Some(t) = s_type {
+                    return Some(Statement {
+                        subject: s,
+                        s_type: t
+                    });
+                }
+            }
+        }
+    }
+    return None
+}
+
+pub fn parse(expr: &str) -> Option<CCExpression> {
     let tokens = tokenize(expr);
     let candidates = find_expression(&tokens);
     return candidates
 }
+
+
 
 
 #[cfg(test)]
@@ -317,6 +343,16 @@ mod tests {
         if let Some(x) = tree {
             assert_eq!(x.to_latex(), String::from("\\prod x : A . B"));
             assert!(matches!(x, CCExpression::TypeAbs {..}));
+        }
+    }
+
+    #[test]
+    fn parse_statement1() {
+        let tree = parse_statement(&String::from("\\lambda q: A. r : \\prod x:A.B "));
+        assert_ne!(tree, None);
+        if let Some(x) = tree {
+            assert_eq!(x.to_latex(), String::from("\\lambda q : A . r : \\prod x : A . B"));
+            assert!(matches!(x, Statement {..}));
         }
     }
 }
