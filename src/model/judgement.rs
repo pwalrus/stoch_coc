@@ -16,8 +16,8 @@ impl Statement {
 
 #[derive(PartialEq,Debug)]
 pub struct Judgement {
-    context: Vec<Statement>,
-    statement: Statement
+    pub context: Vec<Statement>,
+    pub statement: Statement
 }
 
 impl Judgement {
