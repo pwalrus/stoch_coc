@@ -67,6 +67,13 @@ impl CCExpression {
 
     }
 
+    pub fn is_sort(&self) -> bool {
+        match self {
+            CCExpression::Star => true,
+            CCExpression::Sq => true,
+            _ => false,
+        }
+    }
 }
 
 impl Clone for CCExpression {
@@ -201,5 +208,11 @@ mod tests {
                    String::from("apple"),
                    String::from("banana")
         ]);
+    }
+
+    #[test]
+    fn is_sort_test() {
+        assert!(!CCExpression::Var(String::from("X")).is_sort());
+        assert!(CCExpression::Star.is_sort());
     }
 }
