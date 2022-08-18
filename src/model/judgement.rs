@@ -28,11 +28,13 @@ impl Judgement {
             ).reduce(
                 |a, b| a + ", " + &b
             );
+
+        let stmt = String::from("\\vdash ") + &self.statement.to_latex(); 
            
-        match output {
-            Some(x) => x + " \\vdash " + &self.statement.to_latex(), 
-            None => String::from("")
-        }
+        return match output {
+            Some(x) => x + " " + &stmt,
+            None => stmt
+        };
     }
 
 }
