@@ -74,6 +74,83 @@ impl CCExpression {
             _ => false,
         }
     }
+
+    pub fn substitute(&self, token: &str, expr: &CCExpression) -> CCExpression {
+        match self {
+            CCExpression::Star => CCExpression::Star,
+            CCExpression::Sq => CCExpression::Sq,
+            CCExpression::Var(x) => {
+                if x == token { expr.clone() }
+                else { CCExpression::Var(x.clone()) }
+            },
+            CCExpression::Abs(x, a_type, ret) => {
+                if x == token { CCExpression::Abs(
+                        String::from(x), 
+                        a_type.clone(), 
+                        ret.clone()) }
+                else { CCExpression::Abs(
+                        String::from(x), 
+                        Box::new(a_type.substitute(token, expr)),
+                        Box::new(ret.substitute(token, expr))
+                        ) }
+            },
+            CCExpression::TypeAbs(x, a_type, ret) => {
+                if x == token { CCExpression::TypeAbs(
+                        String::from(x), 
+                        a_type.clone(),
+                        ret.clone()
+                        ) }
+                else { CCExpression::TypeAbs(
+                        String::from(x), 
+                        Box::new(a_type.substitute(token, expr)),
+                        Box::new(ret.substitute(token, expr))
+                        ) } 
+            }
+            CCExpression::Application(lhs, rhs) => {
+                CCExpression::Application(
+                    Box::new(lhs.substitute(token, expr)),
+                    Box::new(rhs.substitute(token, expr))
+                    )
+            }
+        }
+    }
+
+    pub fn alpha_equiv(&self, rhs: &CCExpression) -> bool {
+        match (self, rhs) {
+            (CCExpression::Star, CCExpression::Star) => true,
+            (CCExpression::Sq, CCExpression::Sq) => true,
+            (CCExpression::Var(l), CCExpression::Var(r)) => l == r,
+            (CCExpression::Application(q, r), 
+            CCExpression::Application(x, y)) => {
+                return q.alpha_equiv(x) && r.alpha_equiv(y)
+            },
+            (CCExpression::Abs(x, a_type1, ret1), 
+            CCExpression::Abs(y, a_type2, ret2)) => {
+                if x == y {
+                    return a_type1.alpha_equiv(a_type2) && ret1.alpha_equiv(ret2);
+                } else {
+                    let new_type = a_type2.substitute(y, &CCExpression::Var(x.clone()));
+                    let new_ret = ret2.substitute(y, &CCExpression::Var(x.clone()));
+                    return a_type1.alpha_equiv(&new_type) && ret1.alpha_equiv(&new_ret);
+                }
+            },
+            (CCExpression::TypeAbs(x, a_type1, ret1), 
+            CCExpression::TypeAbs(y, a_type2, ret2)) => {
+                if x == y {
+                    return a_type1.alpha_equiv(a_type2) && ret1.alpha_equiv(ret2);
+                } else {
+                    let new_type = a_type2.substitute(y, &CCExpression::Var(x.clone()));
+                    let new_ret = ret2.substitute(y, &CCExpression::Var(x.clone()));
+                    return a_type1.alpha_equiv(&new_type) && ret1.alpha_equiv(&new_ret);
+                }
+            },
+            (_, _) => false
+        }
+    }
+
+    pub fn beta_equiv(&self, rhs: &CCExpression) -> bool {
+        return self.alpha_equiv(rhs) || self == rhs
+    }
 }
 
 impl Clone for CCExpression {
@@ -214,5 +291,28 @@ mod tests {
     fn is_sort_test() {
         assert!(!CCExpression::Var(String::from("X")).is_sort());
         assert!(CCExpression::Star.is_sort());
+    }
+
+    #[test]
+    fn substitute1() {
+        let expr1 = CCExpression::Var(String::from("x"));
+        let expr2 = CCExpression::Var(String::from("y"));
+        let expr3 = CCExpression::Application(
+            Box::new(expr1.clone()),
+            Box::new(expr2.clone())
+            );
+        let expr4 = CCExpression::Var(String::from("z"));
+        assert_eq!(
+            &expr1.substitute("x", &expr4).to_latex(),
+            "z"
+            );
+        assert_eq!(
+            &expr2.substitute("x", &expr4).to_latex(),
+            "y"
+            );
+        assert_eq!(
+            &expr3.substitute("x", &expr4).to_latex(),
+            "z y"
+            );
     }
 }
