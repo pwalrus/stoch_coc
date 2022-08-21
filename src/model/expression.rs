@@ -148,8 +148,28 @@ impl CCExpression {
         }
     }
 
+    pub fn beta_reduce(&self) -> CCExpression {
+        match self {
+            CCExpression::Star => CCExpression::Star,
+            CCExpression::Sq => CCExpression::Sq,
+            CCExpression::Var(x) => CCExpression::Var(x.clone()),
+            CCExpression::Application(lhs, rhs) => {
+                let l = lhs.beta_reduce();
+                let r = rhs.beta_reduce();
+                if let CCExpression::Abs(arg, _, ret) = l {
+                    return ret.substitute(&arg, &r);
+                }
+                return CCExpression::Application(
+                    Box::new(l),
+                    Box::new(r)
+                    );
+            },
+            other => other.clone()
+        }
+    }
+
     pub fn beta_equiv(&self, rhs: &CCExpression) -> bool {
-        return self.alpha_equiv(rhs) || self == rhs
+        return self.beta_reduce().alpha_equiv(&rhs.beta_reduce());
     }
 }
 
@@ -302,6 +322,13 @@ mod tests {
             Box::new(expr2.clone())
             );
         let expr4 = CCExpression::Var(String::from("z"));
+        let expr5 = CCExpression::Var(String::from("A"));
+        let expr6 = CCExpression::Abs(
+            String::from("x"),
+            Box::new(expr5.clone()),
+            Box::new(expr1.clone())
+            );
+
         assert_eq!(
             &expr1.substitute("x", &expr4).to_latex(),
             "z"
@@ -314,5 +341,31 @@ mod tests {
             &expr3.substitute("x", &expr4).to_latex(),
             "z y"
             );
+        assert_eq!(
+            &expr6.substitute("x", &expr4).to_latex(),
+            "\\lambda x : A . x"
+            );
+    }
+
+    #[test]
+    fn beta_reduce() {
+        let expr1 = CCExpression::Var(String::from("x"));
+        let expr2 = CCExpression::Var(String::from("y"));
+        let expr4 = CCExpression::Var(String::from("z"));
+        let expr5 = CCExpression::Var(String::from("A"));
+        let expr6 = CCExpression::Abs(
+            String::from("x"),
+            Box::new(expr5.clone()),
+            Box::new(expr1.clone())
+            );
+        let expr3 = CCExpression::Application(
+            Box::new(expr6.clone()),
+            Box::new(expr4.clone())
+            );
+
+        assert_eq!(expr3.beta_reduce().to_latex(), "z");
+        assert_eq!(expr2.beta_reduce().to_latex(), "y");
+        assert_eq!(expr6.beta_reduce().to_latex(), "\\lambda x : A . x");
+
     }
 }
