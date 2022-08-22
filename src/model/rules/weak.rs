@@ -3,7 +3,7 @@ use crate::model::expression::CCExpression;
 use crate::model::judgement::{Judgement, Statement};
 use crate::model::rules::base::{DerRule, next_unused_var};
 
-struct WeakRule {}
+pub struct WeakRule {}
 
 impl DerRule for WeakRule {
     fn apply(&self, lhs: Option<Judgement>, rhs: Option<Judgement>) -> Option<Judgement> {
@@ -29,6 +29,7 @@ impl DerRule for WeakRule {
         return String::from("weak");
     }
     
+    fn sig_size(&self) -> u32 { return 2; }
 }
 
 #[cfg(test)]

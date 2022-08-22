@@ -1,10 +1,10 @@
 
 pub mod base;
-pub mod var;
-pub mod sort;
-pub mod weak;
-pub mod form;
-pub mod appl;
-pub mod abst;
-pub mod conv;
-
+mod var;
+mod sort;
+mod weak;
+mod form;
+mod appl;
+mod abst;
+mod conv;
+pub mod ruleset;

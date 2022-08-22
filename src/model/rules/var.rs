@@ -4,7 +4,7 @@ use crate::model::judgement::{Judgement, Statement};
 use crate::model::rules::base::{DerRule, next_unused_var};
 
 
-struct VarRule {}
+pub struct VarRule {}
 
 impl DerRule for VarRule {
     fn apply(&self, lhs: Option<Judgement>, rhs: Option<Judgement>) -> Option<Judgement> {
@@ -33,6 +33,8 @@ impl DerRule for VarRule {
     fn name(&self) -> String {
         return String::from("var");
     }
+
+    fn sig_size(&self) -> u32 { return 1; }
 }
 
 #[cfg(test)]

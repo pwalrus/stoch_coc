@@ -261,19 +261,15 @@ fn find_context(tokens: &[String]) -> Option<Vec<Statement>> {
     let mut last: usize = 0;
 
     for (idx, token) in tokens.iter().enumerate() {
-        println!("token {}: {}", idx, token);
         if token == "," {
-            println!("found comma at {}", idx);
             let stmt = find_statement(&tokens[last..idx]);
             if let Some(s) = stmt {
-                println!("found statement: {} .. {}", &tokens[last], &tokens[idx-1]);
                 output.push(s);
                 last = idx + 1;
             }
         }
     }
     let stmt = find_statement(&tokens[last..]);
-    println!("last = {}", last);
     if let Some(s) = stmt {
         output.push(s);
         return Some(output);
@@ -300,11 +296,15 @@ pub fn parse_judgement(expr: &str) -> Option<Judgement> {
         if token == "\\vdash" {
             let context = find_context(&tokens[0..idx]);
             let statement = find_statement(&tokens[idx+1..]);
-            if let Some(c) = context {
-                println!("found context");
-                if let Some(s) = statement {
+            if let Some(s) = statement {
+                if let Some(c) = context {
                     return Some(Judgement {
                         context: c,
+                        statement: s
+                    });
+                } else if idx == 0 {
+                    return Some(Judgement {
+                        context: vec![],
                         statement: s
                     });
                 }
@@ -436,6 +436,16 @@ mod tests {
         assert_ne!(tree, None);
         if let Some(x) = tree {
             assert_eq!(x.to_latex(), String::from("x : A, y : B \\vdash x y : C"));
+            assert!(matches!(x, Judgement{..}));
+        }
+    }
+
+    #[test]
+    fn parse_judgement2() {
+        let tree = parse_judgement(&String::from("\\vdash \\ast : \\square"));
+        assert_ne!(tree, None);
+        if let Some(x) = tree {
+            assert_eq!(x.to_latex(), String::from("\\vdash \\ast : \\square"));
             assert!(matches!(x, Judgement{..}));
         }
     }

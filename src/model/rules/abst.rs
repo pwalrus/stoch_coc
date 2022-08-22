@@ -19,7 +19,7 @@ fn make_new_ctx(context: &[Statement], stmt: &Statement) -> Vec<Statement> {
     return ctx
 }
 
-struct AbstRule {}
+pub struct AbstRule {}
 
 impl DerRule for AbstRule {
     fn apply(&self, lhs: Option<Judgement>, rhs: Option<Judgement>) -> Option<Judgement> {
@@ -56,6 +56,7 @@ impl DerRule for AbstRule {
         return String::from("abst");
     }
     
+    fn sig_size(&self) -> u32 { return 2; }
 }
 
 #[cfg(test)]

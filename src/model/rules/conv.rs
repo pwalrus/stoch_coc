@@ -3,7 +3,7 @@ use crate::model::expression::CCExpression;
 use crate::model::judgement::{Judgement, Statement};
 use crate::model::rules::base::{DerRule};
 
-struct ConvRule {}
+pub struct ConvRule {}
 
 impl DerRule for ConvRule {
     fn apply(&self, lhs: Option<Judgement>, rhs: Option<Judgement>) -> Option<Judgement> {
@@ -30,6 +30,7 @@ impl DerRule for ConvRule {
         return String::from("conv");
     }
     
+    fn sig_size(&self) -> u32 { return 2; }
 }
 
 #[cfg(test)]

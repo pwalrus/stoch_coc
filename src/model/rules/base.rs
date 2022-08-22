@@ -18,9 +18,9 @@ pub fn next_unused_var(context: &[Statement]) -> String {
     return String::from("x");
 }
 
-
 pub trait DerRule {
     fn apply(&self, lhs: Option<Judgement>, rhs: Option<Judgement>) -> Option<Judgement>;
     fn name(&self) -> String;
+    fn sig_size(&self) -> u32;
 }
 

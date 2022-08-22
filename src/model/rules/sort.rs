@@ -3,7 +3,7 @@ use crate::model::expression::CCExpression;
 use crate::model::judgement::{Judgement, Statement};
 use crate::model::rules::base::{DerRule};
 
-struct SortRule {}
+pub struct SortRule {}
 
 impl DerRule for SortRule {
     fn apply(&self, lhs: Option<Judgement>, rhs: Option<Judgement>) -> Option<Judgement> {
@@ -23,6 +23,7 @@ impl DerRule for SortRule {
         return String::from("sort");
     }
     
+    fn sig_size(&self) -> u32 { return 0; }
 }
 
 #[cfg(test)]

@@ -3,7 +3,7 @@ use crate::model::expression::CCExpression;
 use crate::model::judgement::{Judgement, Statement};
 use crate::model::rules::base::{DerRule};
 
-struct FormRule {}
+pub struct FormRule {}
 
 fn find_matching_stmt(context: &[Statement], stmt: &Statement) -> Option<Statement> {
     for x in context {
@@ -53,6 +53,7 @@ impl DerRule for FormRule {
         return String::from("form");
     }
     
+    fn sig_size(&self) -> u32 { return 2; }
 }
 
 #[cfg(test)]
