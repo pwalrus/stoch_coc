@@ -1,7 +1,7 @@
 
 use crate::model::expression::CCExpression;
 use crate::model::judgement::{Judgement, Statement};
-use crate::model::rules::base::{DerRule, next_unused_var};
+use crate::model::rules::base::{DerRule, next_unused_var, next_unused_type};
 
 
 pub struct VarRule {}
@@ -10,6 +10,7 @@ impl DerRule for VarRule {
     fn apply(&self, lhs: Option<Judgement>, rhs: Option<Judgement>) -> Option<Judgement> {
         if let Some(_) = rhs { return None; }
         if let Some(in_judge) = lhs {
+            println!("in var");
             let stmt = &in_judge.statement;
             if let CCExpression::Star = &stmt.s_type {
                 if let CCExpression::Var(_) = &stmt.subject {
@@ -25,6 +26,19 @@ impl DerRule for VarRule {
                         statement: new_stmt
                     });
                 }
+            }
+            if let CCExpression::Star = &stmt.subject {
+                let next = next_unused_type(&in_judge.context);
+                let new_stmt = Statement {
+                    s_type: CCExpression::Star,
+                    subject: CCExpression::Var(next) 
+                };
+                return Some(Judgement {
+                    context: [
+                        in_judge.context,
+                        vec![new_stmt.clone()]].concat(),
+                    statement: new_stmt
+                });
             }
         }
         return None;
