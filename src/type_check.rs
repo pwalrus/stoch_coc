@@ -26,14 +26,32 @@ impl LineRef {
     }
 }
 
+fn rule_applies_two(jdg: &Judgement, 
+                    rule: &dyn DerRule,
+                    lines: &[Judgement]
+                    )  -> Option<LineRef> {
+    for (idx1, j1) in lines.iter().enumerate() {
+        for (idx2, j2) in lines.iter().enumerate() {
+            if let Some(j) = rule.apply(Some(j1.clone()), Some(j2.clone())) {
+                println!("comparing ({})  {} with {}", rule.name(), j.to_latex(), jdg.to_latex());
+                if &j == jdg {
+                    return Some(LineRef {
+                        rule: rule.name(),
+                        line1: Some(idx1 as u32),
+                        line2: Some(idx2 as u32)
+                    });
+                }
+            }
+        }
+    }
+    return None;
+}
 fn rule_applies_one(jdg: &Judgement, 
                     rule: &dyn DerRule,
                     lines: &[Judgement]
                     )  -> Option<LineRef> {
     for (idx1, j1) in lines.iter().enumerate() {
-        println!("comparing ({})  {}", rule.name(), j1.to_latex());
         if let Some(j) = rule.apply(Some(j1.clone()), None) {
-            println!("comparing ({})  {} with {}", rule.name(), j.to_latex(), jdg.to_latex());
             if &j == jdg {
                 return Some(LineRef {
                     rule: rule.name(),
@@ -44,13 +62,11 @@ fn rule_applies_one(jdg: &Judgement,
         }
     }
     return None;
-
 }
 
 fn rule_applies_zero(jdg: &Judgement, 
                      rule: &dyn DerRule)  -> Option<LineRef> {
     if let Some(j) = rule.apply(None, None) {
-        println!("comparing {} with {}", j.to_latex(), jdg.to_latex());
         if &j == jdg {
             return Some(LineRef {
                 rule: rule.name(),
@@ -66,15 +82,15 @@ fn rule_applies_zero(jdg: &Judgement,
 pub fn check_proof(judges: &[Judgement]) -> Option<Vec<LineRef>> {
     let rules = all_rules();
     let mut output: Vec<LineRef> = vec![];
-    println!("starting with {} lines", judges.len());
     for (idx, jdg) in judges.iter().enumerate() {
         let mut found : Option<LineRef> = None;
         for rule in &rules {
-            // println!("trying {} = {} with {}", idx, jdg.to_latex(), rule.name());
             if rule.sig_size() == 0 {
                 found = rule_applies_zero(jdg, &(**rule));
             } else if rule.sig_size() == 1 {
                 found = rule_applies_one(jdg, &(**rule), &judges[0..idx]);
+            } else if rule.sig_size() == 2 {
+                found = rule_applies_two(jdg, &(**rule), &judges[0..idx]);
             }
             if let Some(_) = &found {
                 break;
@@ -129,6 +145,34 @@ mod tests {
                    line1: Some(0), 
                    line2: None }
             ]);
+        } else {
+            panic!();
+        }
+    }
+
+    #[test]
+    fn type_check_var_reject() {
+        let lines: Vec<Judgement> = vec![
+            parse_judgement("\\vdash \\ast : \\square").unwrap(),
+            parse_judgement("A : \\ast \\vdash B : \\ast").unwrap()
+        ];
+        let refs = check_proof(&lines);
+        assert_eq!(refs, None);
+    }
+
+    #[test]
+    fn type_check_weak() {
+        let lines: Vec<Judgement> = vec![
+            parse_judgement("\\vdash \\ast : \\square").unwrap(),
+            parse_judgement("A : \\ast \\vdash A : \\ast").unwrap(),
+            parse_judgement("A : \\ast, a : A \\vdash A : \\ast").unwrap()
+        ];
+        let refs = check_proof(&lines);
+        if let Some(r) = refs {
+            let r_str: Vec<String> = r.iter().filter_map(|x| 
+                                                         Some(x.to_latex())
+                                                         ).collect();
+            assert_eq!(r_str, vec![ "sort", "var 0", "weak 1,1" ]);
         } else {
             panic!();
         }
