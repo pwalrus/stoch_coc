@@ -34,7 +34,7 @@ fn rule_applies_two(jdg: &Judgement,
         for (idx2, j2) in lines.iter().enumerate() {
             if let Some(j) = rule.apply(Some(j1.clone()), Some(j2.clone())) {
                 println!("comparing ({})  {} with {}", rule.name(), j.to_latex(), jdg.to_latex());
-                if &j == jdg {
+                if j.alpha_equiv(&jdg) {
                     return Some(LineRef {
                         rule: rule.name(),
                         line1: Some(idx1 as u32),
@@ -52,7 +52,8 @@ fn rule_applies_one(jdg: &Judgement,
                     )  -> Option<LineRef> {
     for (idx1, j1) in lines.iter().enumerate() {
         if let Some(j) = rule.apply(Some(j1.clone()), None) {
-            if &j == jdg {
+            println!("comparing ({})  {} with {}", rule.name(), j.to_latex(), jdg.to_latex());
+            if j.alpha_equiv(jdg) {
                 return Some(LineRef {
                     rule: rule.name(),
                     line1: Some(idx1 as u32),
@@ -133,7 +134,7 @@ mod tests {
     fn type_check_var() {
         let lines: Vec<Judgement> = vec![
             parse_judgement("\\vdash \\ast : \\square").unwrap(),
-            parse_judgement("A : \\ast \\vdash A : \\ast").unwrap()
+            parse_judgement("B : \\ast \\vdash B : \\ast").unwrap()
         ];
         let refs = check_proof(&lines);
         if let Some(r) = refs {
@@ -165,7 +166,7 @@ mod tests {
         let lines: Vec<Judgement> = vec![
             parse_judgement("\\vdash \\ast : \\square").unwrap(),
             parse_judgement("A : \\ast \\vdash A : \\ast").unwrap(),
-            parse_judgement("A : \\ast, a : A \\vdash A : \\ast").unwrap()
+            parse_judgement("A : \\ast, x : A \\vdash A : \\ast").unwrap()
         ];
         let refs = check_proof(&lines);
         if let Some(r) = refs {

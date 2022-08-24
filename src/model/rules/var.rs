@@ -10,7 +10,6 @@ impl DerRule for VarRule {
     fn apply(&self, lhs: Option<Judgement>, rhs: Option<Judgement>) -> Option<Judgement> {
         if let Some(_) = rhs { return None; }
         if let Some(in_judge) = lhs {
-            println!("in var");
             let stmt = &in_judge.statement;
             if let CCExpression::Star = &stmt.s_type {
                 if let CCExpression::Var(_) = &stmt.subject {
