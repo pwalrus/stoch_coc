@@ -6,18 +6,18 @@ use crate::model::rules::base::{DerRule, next_unused_var};
 pub struct WeakRule {}
 
 impl DerRule for WeakRule {
-    fn apply(&self, lhs: Option<Judgement>, rhs: Option<Judgement>) -> Option<Judgement> {
+    fn apply(&self, lhs: Option<&Judgement>, rhs: Option<&Judgement>) -> Option<Judgement> {
         if let Some(judge) = lhs {
             if let Some(t_judge) = rhs {
                 if t_judge.statement.s_type.is_sort() {
                     let var = next_unused_var(&judge.context);
                     let stmt = Statement {
                         subject: CCExpression::Var(var),
-                        s_type: t_judge.statement.subject
+                        s_type: t_judge.statement.subject.clone()
                     };
                     return Some(Judgement {
-                        context: [judge.context, vec![stmt]].concat(),
-                        statement: judge.statement
+                        context: [judge.context.clone(), vec![stmt]].concat(),
+                        statement: judge.statement.clone()
                     });
                 }
             }
@@ -47,10 +47,10 @@ mod tests {
             subject: CCExpression::Var(String::from("C")),
             s_type: CCExpression::Star
         };
-        let output = rule.apply(Some(Judgement {
+        let output = rule.apply(Some(&Judgement {
             context: vec![],
             statement: stmt1.clone()
-        }), Some(Judgement {
+        }), Some(&Judgement {
             context: vec![],
             statement: stmt2
         }));

@@ -134,8 +134,6 @@ mod tests {
         assert_eq!(jdg2.to_latex(), "B : \\ast \\vdash B : \\ast");
         let cm = context_map(&jdg1.context, &jdg2.context);
         if let Some(cmap) = cm {
-            for (x,y) in &cmap {
-            }
             assert_eq!(cmap.len(), 1);
             assert_eq!(cmap[&"A".to_string()], "B");
         } else {

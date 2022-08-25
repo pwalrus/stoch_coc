@@ -6,7 +6,7 @@ use crate::model::rules::base::{DerRule};
 pub struct SortRule {}
 
 impl DerRule for SortRule {
-    fn apply(&self, lhs: Option<Judgement>, rhs: Option<Judgement>) -> Option<Judgement> {
+    fn apply(&self, lhs: Option<&Judgement>, rhs: Option<&Judgement>) -> Option<Judgement> {
         if let Some(_) = lhs { return None; }
         if let Some(_) = rhs { return None; }
         let stmt = Statement {

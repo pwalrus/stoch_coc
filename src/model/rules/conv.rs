@@ -6,16 +6,16 @@ use crate::model::rules::base::{DerRule};
 pub struct ConvRule {}
 
 impl DerRule for ConvRule {
-    fn apply(&self, lhs: Option<Judgement>, rhs: Option<Judgement>) -> Option<Judgement> {
+    fn apply(&self, lhs: Option<&Judgement>, rhs: Option<&Judgement>) -> Option<Judgement> {
         if let Some(orig_judge) = lhs {
             if let Some(other_judge) = rhs {
                 if !other_judge.statement.s_type.is_sort() { return None; }
-                if orig_judge.statement.s_type == other_judge.statement.subject { return None; }
-                if !orig_judge.statement.s_type.beta_equiv(&other_judge.statement.subject) { return None; }
+                if &orig_judge.statement.s_type == &other_judge.statement.subject { return None; }
+                if !&orig_judge.statement.s_type.beta_equiv(&other_judge.statement.subject) { return None; }
 
                 let stmt = Statement {
-                    subject: orig_judge.statement.subject,
-                    s_type: other_judge.statement.subject
+                    subject: orig_judge.statement.subject.clone(),
+                    s_type: other_judge.statement.subject.clone()
                 };
                 return Some(Judgement {
                     context: orig_judge.context.clone(),
@@ -78,7 +78,7 @@ mod tests {
         assert_eq!(judg1.to_latex(), "\\vdash x : \\prod x : A . x");
         assert_eq!(judg2.to_latex(), "\\vdash \\prod y : A . y : \\ast");
         assert_eq!(judg3.to_latex(), "\\vdash x : \\prod y : A . y");
-        let output = rule.apply(Some(judg1), Some(judg2));
+        let output = rule.apply(Some(&judg1), Some(&judg2));
         assert_eq!(rule.name(), "conv");
         assert!(matches!(output, Some(Judgement { .. })));
         if let Some(judge) = output {

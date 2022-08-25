@@ -7,7 +7,7 @@ use crate::model::rules::base::{DerRule, next_unused_var, next_unused_type};
 pub struct VarRule {}
 
 impl DerRule for VarRule {
-    fn apply(&self, lhs: Option<Judgement>, rhs: Option<Judgement>) -> Option<Judgement> {
+    fn apply(&self, lhs: Option<&Judgement>, rhs: Option<&Judgement>) -> Option<Judgement> {
         if let Some(_) = rhs { return None; }
         if let Some(in_judge) = lhs {
             let stmt = &in_judge.statement;
@@ -20,7 +20,7 @@ impl DerRule for VarRule {
                     };
                     return Some(Judgement {
                         context: [
-                            in_judge.context,
+                            in_judge.context.clone(),
                             vec![new_stmt.clone()]].concat(),
                         statement: new_stmt
                     });
@@ -34,7 +34,7 @@ impl DerRule for VarRule {
                 };
                 return Some(Judgement {
                     context: [
-                        in_judge.context,
+                        in_judge.context.clone(),
                         vec![new_stmt.clone()]].concat(),
                     statement: new_stmt
                 });
@@ -65,7 +65,7 @@ mod tests {
             context: vec![],
             statement: stmt
         };
-        let output = rule.apply(Some(jdg), None);
+        let output = rule.apply(Some(&jdg), None);
         assert_eq!(rule.name(), "var");
         assert_ne!(output, None);
         assert!(matches!(output, Some(Judgement { .. })));

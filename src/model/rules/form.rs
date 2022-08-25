@@ -22,7 +22,7 @@ fn make_new_ctx(context: &[Statement], stmt: &Statement) -> Vec<Statement> {
 }
 
 impl DerRule for FormRule {
-    fn apply(&self, lhs: Option<Judgement>, rhs: Option<Judgement>) -> Option<Judgement> {
+    fn apply(&self, lhs: Option<&Judgement>, rhs: Option<&Judgement>) -> Option<Judgement> {
         if let Some(jdg1) = lhs {
             if let Some(jdg2) = rhs {
                 let m_stmt = find_matching_stmt(&jdg2.context, &jdg1.statement);
@@ -32,11 +32,11 @@ impl DerRule for FormRule {
                         let new_type = CCExpression::TypeAbs(
                                 x,
                                 Box::new(stmt.s_type),
-                                Box::new(jdg2.statement.subject)
+                                Box::new(jdg2.statement.subject.clone())
                             );
                         let new_stmt = Statement {
                             subject: new_type,
-                            s_type: jdg2.statement.s_type
+                            s_type: jdg2.statement.s_type.clone()
                         };
                         return Some(Judgement {
                             statement: new_stmt,
@@ -85,7 +85,7 @@ mod tests {
         };
         assert_eq!(judg1.to_latex(), "\\vdash A : \\ast");
 
-        let output = rule.apply(Some(judg1), Some(judg2));
+        let output = rule.apply(Some(&judg1), Some(&judg2));
         assert_ne!(output, None);
         assert_eq!(rule.name(), "form");
         assert!(matches!(output, Some(Judgement { .. })));

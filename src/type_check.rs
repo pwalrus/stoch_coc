@@ -32,7 +32,7 @@ fn rule_applies_two(jdg: &Judgement,
                     )  -> Option<LineRef> {
     for (idx1, j1) in lines.iter().enumerate() {
         for (idx2, j2) in lines.iter().enumerate() {
-            if let Some(j) = rule.apply(Some(j1.clone()), Some(j2.clone())) {
+            if let Some(j) = rule.apply(Some(j1), Some(j2)) {
                 println!("comparing ({})  {} with {}", rule.name(), j.to_latex(), jdg.to_latex());
                 if j.alpha_equiv(&jdg) {
                     return Some(LineRef {
@@ -51,7 +51,7 @@ fn rule_applies_one(jdg: &Judgement,
                     lines: &[Judgement]
                     )  -> Option<LineRef> {
     for (idx1, j1) in lines.iter().enumerate() {
-        if let Some(j) = rule.apply(Some(j1.clone()), None) {
+        if let Some(j) = rule.apply(Some(j1), None) {
             println!("comparing ({})  {} with {}", rule.name(), j.to_latex(), jdg.to_latex());
             if j.alpha_equiv(jdg) {
                 return Some(LineRef {
