@@ -26,14 +26,13 @@ impl LineRef {
     }
 }
 
-fn rule_applies_two(jdg: &Judgement, 
+fn rule_applies_two(jdg: &Judgement,
                     rule: &dyn DerRule,
                     lines: &[Judgement]
                     )  -> Option<LineRef> {
     for (idx1, j1) in lines.iter().enumerate() {
         for (idx2, j2) in lines.iter().enumerate() {
             if let Some(j) = rule.apply(Some(j1), Some(j2)) {
-                println!("comparing ({})  {} with {}", rule.name(), j.to_latex(), jdg.to_latex());
                 if j.alpha_equiv(&jdg) {
                     return Some(LineRef {
                         rule: rule.name(),
@@ -46,7 +45,7 @@ fn rule_applies_two(jdg: &Judgement,
     }
     return None;
 }
-fn rule_applies_one(jdg: &Judgement, 
+fn rule_applies_one(jdg: &Judgement,
                     rule: &dyn DerRule,
                     lines: &[Judgement]
                     )  -> Option<LineRef> {
@@ -65,7 +64,7 @@ fn rule_applies_one(jdg: &Judgement,
     return None;
 }
 
-fn rule_applies_zero(jdg: &Judgement, 
+fn rule_applies_zero(jdg: &Judgement,
                      rule: &dyn DerRule)  -> Option<LineRef> {
     if let Some(j) = rule.apply(None, None) {
         if &j == jdg {
@@ -95,7 +94,7 @@ pub fn check_proof(judges: &[Judgement]) -> Option<Vec<LineRef>> {
             }
             if let Some(_) = &found {
                 break;
-            } 
+            }
         }
         if let Some(r) = found {
             output.push(r);
@@ -120,8 +119,8 @@ mod tests {
         let refs = check_proof(&lines);
         if let Some(r) = refs {
             assert_eq!(r, vec![
-               LineRef { rule: String::from("sort"), 
-                   line1: None, 
+               LineRef { rule: String::from("sort"),
+                   line1: None,
                    line2: None }
             ]);
             assert_eq!(r[0].to_latex(), "sort");
@@ -139,11 +138,11 @@ mod tests {
         let refs = check_proof(&lines);
         if let Some(r) = refs {
             assert_eq!(r, vec![
-               LineRef { rule: String::from("sort"), 
-                   line1: None, 
+               LineRef { rule: String::from("sort"),
+                   line1: None,
                    line2: None },
-               LineRef { rule: String::from("var"), 
-                   line1: Some(0), 
+               LineRef { rule: String::from("var"),
+                   line1: Some(0),
                    line2: None }
             ]);
         } else {
@@ -166,14 +165,24 @@ mod tests {
         let lines: Vec<Judgement> = vec![
             parse_judgement("\\vdash \\ast : \\square").unwrap(),
             parse_judgement("A : \\ast \\vdash A : \\ast").unwrap(),
-            parse_judgement("A : \\ast, x : A \\vdash A : \\ast").unwrap()
+            parse_judgement("A : \\ast, x : A \\vdash A : \\ast").unwrap(),
+            parse_judgement("A : \\ast, x : A \\vdash x : A").unwrap(),
+            parse_judgement("A : \\ast \\vdash \\prod x  : A . A : \\ast").unwrap(),
+            parse_judgement("A : \\ast \\vdash \\lambda x : A . x : \\prod x  : A . A").unwrap()
         ];
         let refs = check_proof(&lines);
         if let Some(r) = refs {
-            let r_str: Vec<String> = r.iter().filter_map(|x| 
+            let r_str: Vec<String> = r.iter().filter_map(|x|
                                                          Some(x.to_latex())
                                                          ).collect();
-            assert_eq!(r_str, vec![ "sort", "var 0", "weak 1,1" ]);
+            assert_eq!(r_str, vec![
+                       "sort",
+                       "var 0",
+                       "weak 1,1",
+                       "var 1",
+                       "form 1,2",
+                       "abst 3,4"
+            ]);
         } else {
             panic!();
         }
