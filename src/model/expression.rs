@@ -35,6 +35,13 @@ impl CCExpression {
         }
     }
 
+    pub fn var_str(&self) -> Option<String> {
+        match self {
+            CCExpression::Var(x) => Some(x.to_string()),
+            _ => None
+        }
+    }
+
     pub fn sub_terms(&self) -> Vec<CCExpression> {
         match self {
             CCExpression::Application(left, right) => {
@@ -208,12 +215,14 @@ mod tests {
     fn to_latex_simple_var() {
         let expr1 = CCExpression::Var(String::from("banana"));
         assert_eq!(expr1.to_latex(), "banana");
+        assert_eq!(expr1.var_str(), Some("banana".to_string()))
     }
 
     #[test]
     fn to_latex_simple_square() {
         let expr1 = CCExpression::Sq;
         assert_eq!(expr1.to_latex(), "\\square");
+        assert_eq!(expr1.var_str(), None);
     }
 
     #[test]
