@@ -1,7 +1,7 @@
 use crate::model::judgement::{Judgement, Statement};
 use crate::model::expression::{CCExpression};
 
-fn unpack_star(context: &[Statement]) -> Vec<Judgement> {
+fn unpack_star(_: &[Statement]) -> Vec<Judgement> {
     let stmt = Statement {
         subject: CCExpression::Star,
         s_type: CCExpression::Sq
@@ -9,7 +9,7 @@ fn unpack_star(context: &[Statement]) -> Vec<Judgement> {
 
     return vec![Judgement {
         statement: stmt,
-        context: context.to_vec()
+        context: vec![]
     }];
 }
 
@@ -42,6 +42,47 @@ fn unpack_var(var: &str, context: &[Statement]) -> Vec<Judgement> {
     return vec![];
 }
 
+fn unpack_type_abs(var: &str, v_type: &CCExpression, ret: &CCExpression,
+                   context: &[Statement]) -> Vec<Judgement> {
+    let p1: Vec<Judgement> = unpack_term(v_type, context);
+    let stmt = Statement {
+        subject: CCExpression::Var(var.to_string()),
+        s_type: v_type.clone()
+    };
+    let new_ctx = [context, &vec![stmt]].concat();
+    let p2: Vec<Judgement> = unpack_term(ret, &new_ctx);
+    if p1.len() == 0 || p2.len() == 0 {
+        return vec![];
+    }
+    let last = Judgement {
+        context: context.to_vec(),
+        statement: Statement {
+            subject: CCExpression::TypeAbs(String::from(var),
+                                           Box::new(v_type.clone()),
+                                           Box::new(ret.clone())),
+            s_type: p2.last().unwrap().statement.s_type.clone()
+        }
+    };
+
+    return remove_dup(p1.iter().chain(p2.iter())
+                      .chain(std::iter::once(&last)));
+}
+
+fn remove_dup<'a, T>(lst: T) -> Vec<Judgement>
+where T: Iterator<Item= &'a Judgement>
+{
+    let mut seen: Vec<Judgement> = vec![];
+    return lst.into_iter().filter_map(
+        |x| if seen.contains(x) {
+            return None;
+        } else {
+            seen.push(x.clone());
+            return Some(x.clone());
+        }
+        ).collect();
+}
+
+
 pub fn unpack_term(term: &CCExpression, context: &[Statement]) -> Vec<Judgement> {
 
     match term {
@@ -49,7 +90,7 @@ pub fn unpack_term(term: &CCExpression, context: &[Statement]) -> Vec<Judgement>
         CCExpression::Sq => vec![],
         CCExpression::Var(x) => unpack_var(&x, context),
         CCExpression::Abs(_, _, _) => vec![],
-        CCExpression::TypeAbs(_, _, _) => vec![],
+        CCExpression::TypeAbs(x, v_type, ret) => unpack_type_abs(&x, &v_type, &ret, context),
         CCExpression::Application(_, _) => vec![]
     }
 }
@@ -75,6 +116,22 @@ mod tests {
                    "\\vdash \\ast : \\square",
                    "A : \\ast \\vdash A : \\ast",
                    "A : \\ast, a : A \\vdash a : A"
+        ]);
+    }
+
+    #[test]
+    fn type_abs_unpack() {
+        let jdg: Judgement = parse_judgement("A:\\ast \\vdash \\prod x : A . A : \\ast").unwrap();
+        let lines = unpack_term(&jdg.statement.subject, &jdg.context);
+
+        let str_lines: Vec<String> = lines.iter().map(
+            |x| x.to_latex()
+            ).collect();
+        assert_eq!(str_lines, [
+                   "\\vdash \\ast : \\square",
+                   "A : \\ast \\vdash A : \\ast",
+                   "A : \\ast, x : A \\vdash A : \\ast",
+                   "A : \\ast \\vdash \\prod x : A . A : \\ast"
         ]);
     }
 }

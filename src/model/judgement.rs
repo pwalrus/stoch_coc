@@ -46,6 +46,13 @@ pub struct Judgement {
 
 impl Judgement {
 
+    pub fn same_or_weaker(&self, rhs: &Judgement) -> bool {
+        if self.statement != rhs.statement {
+            return false;
+        }
+        return rhs.context.iter().all(|x| self.context.contains(x));
+    }
+
     pub fn to_latex(&self) -> String {
         let output = self.context.iter().map(
                 |x| x.to_latex()
@@ -106,12 +113,20 @@ mod tests {
         let expr6 = CCExpression::Var(String::from("C"));
         let stmt3 = Statement { subject: expr5, s_type: expr6 };
         let judge = Judgement {
-            context: vec![stmt1, stmt2],
+            context: vec![stmt1.clone(), stmt2],
+            statement: stmt3.clone()
+        };
+        let judge2 = Judgement {
+            context: vec![stmt1],
             statement: stmt3
         };
         assert_eq!(judge.to_latex(), String::from(
                 "banana : A, orange : B \\vdash potato : C"
                 ));
+        assert!(judge.same_or_weaker(&judge2));
+        assert!(judge.same_or_weaker(&judge));
+        assert!(judge2.same_or_weaker(&judge2));
+        assert!(!judge2.same_or_weaker(&judge));
     }
 
     #[test]
