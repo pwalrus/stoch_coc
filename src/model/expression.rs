@@ -18,11 +18,17 @@ impl CCExpression {
             CCExpression::Sq => String::from("\\square"),
             CCExpression::Star => String::from("\\ast"),
             CCExpression::Application(left, right) => {
-                if let CCExpression::Var(_) = **right {
-                    left.to_latex() + " " + &right.to_latex()
+                let r_out = if let CCExpression::Var(_) = **right {
+                     right.to_latex()
                 } else {
-                    left.to_latex() + " (" + &right.to_latex() + ")"
-                }
+                    String::from("(") + &right.to_latex() + ")"
+                };
+                let l_out = match **left {
+                    CCExpression::Var(_) => left.to_latex(),
+                    CCExpression::Application(_, _) => left.to_latex(),
+                    _ => String::from("(") + &left.to_latex() + ")"
+                };
+                l_out + " " + &r_out
             }
             CCExpression::Abs(arg, t, ret) => {
                 String::from("\\lambda ") + arg + " : " + &t.to_latex()
@@ -283,7 +289,7 @@ mod tests {
                                               Box::new(expr2));
         let terms: Vec<String> = expr5.sub_terms().iter().map(|x| x.to_latex()).collect();
         assert_eq!(terms, vec![
-                   String::from("\\lambda x : A . apple banana"),
+                   String::from("(\\lambda x : A . apple) banana"),
                    String::from("\\lambda x : A . apple"),
                    String::from("apple"),
                    String::from("banana")

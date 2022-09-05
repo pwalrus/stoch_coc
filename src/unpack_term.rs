@@ -100,6 +100,29 @@ fn unpack_abs(var: &str, v_type: &CCExpression, ret: &CCExpression,
     return remove_dup(p1.iter().chain(&p2).chain(std::iter::once(&last)));
 }
 
+fn unpack_appl(lhs: &CCExpression, rhs: &CCExpression,
+                   context: &[Statement]) -> Vec<Judgement> {
+    let p1: Vec<Judgement> = unpack_term(lhs, context);
+    let p2: Vec<Judgement> = unpack_term(rhs, context);
+
+    if p1.len() == 0 || p2.len() == 0 { return vec![]; }
+    let ret_type = p1.last().unwrap().statement.s_type.clone();
+    if let CCExpression::TypeAbs(_x, _v_type, inner_ret) = ret_type {
+        let last = Judgement {
+            context: context.to_vec(),
+            statement: Statement {
+                subject: CCExpression::Application(Box::new(lhs.clone()),
+                                                   Box::new(rhs.clone())),
+                s_type: *inner_ret
+            }
+        };
+
+        return remove_dup(p2.iter().chain(&p1).chain(std::iter::once(&last)));
+    } else {
+        return vec![];
+    }
+}
+
 fn remove_dup<'a, T>(lst: T) -> Vec<Judgement>
 where T: Iterator<Item= &'a Judgement>
 {
@@ -123,7 +146,7 @@ pub fn unpack_term(term: &CCExpression, context: &[Statement]) -> Vec<Judgement>
         CCExpression::Var(x) => unpack_var(&x, context),
         CCExpression::Abs(x, v_type, ret) => unpack_abs(&x, &v_type, &ret, context),
         CCExpression::TypeAbs(x, v_type, ret) => unpack_type_abs(&x, &v_type, &ret, context),
-        CCExpression::Application(_, _) => vec![]
+        CCExpression::Application(lhs, rhs) => unpack_appl(&lhs, &rhs, context)
     }
 }
 
@@ -182,6 +205,27 @@ mod tests {
                    "A : \\ast, x : A \\vdash A : \\ast",
                    "A : \\ast \\vdash \\prod x : A . A : \\ast",
                    "A : \\ast \\vdash \\lambda x : A . x : \\prod x : A . A"
+        ]);
+    }
+
+    #[test]
+    fn appl_unpack() {
+        let jdg: Judgement = parse_judgement("A:\\ast, y:A \\vdash (\\lambda x : A . x) y : \\ast").unwrap();
+        let lines = unpack_term(&jdg.statement.subject, &jdg.context);
+
+        let str_lines: Vec<String> = lines.iter().map(
+            |x| x.to_latex()
+            ).collect();
+        assert_eq!(str_lines, [
+                   "\\vdash \\ast : \\square",
+                   "A : \\ast \\vdash A : \\ast",
+                   "A : \\ast, y : A \\vdash y : A",
+                   "A : \\ast, y : A \\vdash A : \\ast",
+                   "A : \\ast, y : A, x : A \\vdash x : A",
+                   "A : \\ast, y : A, x : A \\vdash A : \\ast",
+                   "A : \\ast, y : A \\vdash \\prod x : A . A : \\ast",
+                   "A : \\ast, y : A \\vdash \\lambda x : A . x : \\prod x : A . A",
+                   "A : \\ast, y : A \\vdash (\\lambda x : A . x) y : A"
         ]);
     }
 }
