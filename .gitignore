@@ -1,1 +1,6 @@
 /target
+*.aux
+*.log
+*.dvi
+*.pdf
+
