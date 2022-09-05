@@ -3,28 +3,8 @@ use crate::model::judgement::{Judgement};
 use crate::parser::{parse_judgement};
 use crate::model::rules::ruleset::{all_rules};
 use crate::model::rules::base::{DerRule};
+use crate::model::proof::{LineRef};
 
-#[derive(Debug,PartialEq)]
-pub struct LineRef {
-    rule: String,
-    line1: Option<u32>,
-    line2: Option<u32>
-}
-
-impl LineRef {
-
-    fn to_latex(&self) -> String {
-        if let Some(l) = self.line1 {
-            if let Some(r) = self.line2 {
-                return format!("{} {},{}", &self.rule, l, r);
-            } else {
-                return format!("{} {}", &self.rule, l);
-            }
-        } else {
-            return self.rule.clone();
-        }
-    }
-}
 
 fn rule_applies_two(jdg: &Judgement,
                     rule: &dyn DerRule,
