@@ -51,7 +51,6 @@ impl Proof {
             output.join("\\\\\n"),
             end_str
         ].join("\n").trim().to_string();
-        println!("comb: {}", comb);
         return comb;
     }
 

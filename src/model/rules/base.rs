@@ -2,6 +2,56 @@
 use crate::model::expression::CCExpression;
 use crate::model::judgement::{Judgement, Statement};
 
+fn alt_context(old_var: &String, new_var: &String, v_type: &CCExpression,
+               context: &[Statement]) -> Vec<Statement> {
+    return context.iter().filter_map(
+        |stmt| if &stmt.s_type == v_type && stmt.subject.var_str() == Some(new_var.to_string()){
+            Some(Statement {
+                subject: CCExpression::Var(old_var.to_string()),
+                s_type: stmt.s_type.clone()
+            })
+        } else {
+            Some(stmt.clone())
+        }
+        ).collect();
+}
+
+fn alt_vars(v_type: &CCExpression, context: &[Statement]) -> Vec<String> {
+    return context.iter().filter_map(
+        |stmt| if &stmt.s_type == v_type {
+            if let Some(x) = stmt.subject.var_str() {
+                Some(x)
+            } else { None }
+        } else {
+            None
+        }).collect();
+}
+
+pub fn abst_alternatives(jdg: &Judgement) -> Vec<Judgement> {
+    if let CCExpression::Abs(v, v_type, ret) = &jdg.statement.subject {
+        let alts = alt_vars(&v_type, &jdg.context);
+        let output: Vec<Judgement> = alts.iter().map(
+            |new_var| {
+                let ctx = alt_context(&v, new_var, &v_type, &jdg.context);
+                let new_stmt = Statement {
+                    subject: CCExpression::Abs(
+                                 new_var.to_string(),
+                                 Box::new(*v_type.clone()),
+                                 Box::new(*ret.clone())
+                                 ),
+                    s_type: jdg.statement.s_type.clone()
+                };
+                Judgement {
+                    context: ctx,
+                    statement: new_stmt
+                }
+            }
+            ).collect();
+        return output;
+    } else {
+        return vec![];
+    }
+}
 
 pub fn next_unused_var(context: &[Statement]) -> String {
     let used: Vec<String> = context.iter().filter_map(|stmt| {

@@ -2,9 +2,17 @@
 use crate::model::judgement::{Judgement};
 use crate::parser::{parse_judgement};
 use crate::model::rules::ruleset::{all_rules};
-use crate::model::rules::base::{DerRule};
+use crate::model::rules::base::{DerRule, abst_alternatives};
 use crate::model::proof::{LineRef};
 
+
+fn abst_alt_equiv(j1: &Judgement, j2: &Judgement) -> bool {
+    let alts = abst_alternatives(j1);
+    for alt in alts {
+        if alt.alpha_equiv(j2) { return true; }
+    }
+    return false;
+}
 
 fn rule_applies_two(jdg: &Judgement,
                     rule: &dyn DerRule,
@@ -13,7 +21,7 @@ fn rule_applies_two(jdg: &Judgement,
     for (idx1, j1) in lines.iter().enumerate() {
         for (idx2, j2) in lines.iter().enumerate() {
             if let Some(j) = rule.apply(Some(j1), Some(j2)) {
-                if j.alpha_equiv(&jdg) {
+                if j.alpha_equiv(&jdg) || abst_alt_equiv(&j, &jdg) {
                     return Some(LineRef {
                         rule: rule.name(),
                         line1: Some(idx1 as u32),
@@ -31,7 +39,6 @@ fn rule_applies_one(jdg: &Judgement,
                     )  -> Option<LineRef> {
     for (idx1, j1) in lines.iter().enumerate() {
         if let Some(j) = rule.apply(Some(j1), None) {
-            println!("comparing ({})  {} with {}", rule.name(), j.to_latex(), jdg.to_latex());
             if j.alpha_equiv(jdg) {
                 return Some(LineRef {
                     rule: rule.name(),
@@ -59,7 +66,7 @@ fn rule_applies_zero(jdg: &Judgement,
 }
 
 
-pub fn check_proof(judges: &[Judgement]) -> Option<Vec<LineRef>> {
+pub fn check_proof(judges: &[Judgement]) -> Result<Vec<LineRef>, String> {
     let rules = all_rules();
     let mut output: Vec<LineRef> = vec![];
     for (idx, jdg) in judges.iter().enumerate() {
@@ -79,11 +86,13 @@ pub fn check_proof(judges: &[Judgement]) -> Option<Vec<LineRef>> {
         if let Some(r) = found {
             output.push(r);
         } else {
-            return None;
+            return Err(format!("No rule applies on line {}: {}",
+                               idx,
+                               jdg.to_latex()));
         }
     }
 
-    return Some(output);
+    return Ok(output);
 }
 
 
@@ -97,7 +106,7 @@ mod tests {
             parse_judgement("\\vdash \\ast : \\square").unwrap()
         ];
         let refs = check_proof(&lines);
-        if let Some(r) = refs {
+        if let Ok(r) = refs {
             assert_eq!(r, vec![
                LineRef { rule: String::from("sort"),
                    line1: None,
@@ -116,7 +125,7 @@ mod tests {
             parse_judgement("B : \\ast \\vdash B : \\ast").unwrap()
         ];
         let refs = check_proof(&lines);
-        if let Some(r) = refs {
+        if let Ok(r) = refs {
             assert_eq!(r, vec![
                LineRef { rule: String::from("sort"),
                    line1: None,
@@ -137,7 +146,8 @@ mod tests {
             parse_judgement("A : \\ast \\vdash B : \\ast").unwrap()
         ];
         let refs = check_proof(&lines);
-        assert_eq!(refs, None);
+
+        assert!(matches!(refs, Result::Err{ .. }));
     }
 
     #[test]
@@ -151,7 +161,8 @@ mod tests {
             parse_judgement("A : \\ast \\vdash \\lambda x : A . x : \\prod x  : A . A").unwrap()
         ];
         let refs = check_proof(&lines);
-        if let Some(r) = refs {
+
+        if let Ok(r) = refs {
             let r_str: Vec<String> = r.iter().filter_map(|x|
                                                          Some(x.to_latex())
                                                          ).collect();
@@ -166,6 +177,20 @@ mod tests {
         } else {
             panic!();
         }
+    }
+
+    #[test]
+    fn alt_abst() {
+        let jdg: Judgement = parse_judgement(
+            "A:\\ast, b:A\\vdash \\lambda x : A . x : \\prod x : A . A"
+            ).unwrap();
+        let alts = abst_alternatives(&jdg);
+
+        assert_eq!(alts.len(), 1);
+        assert_eq!(alts[0].to_latex(),
+            "A : \\ast, x : A \\vdash \\lambda b : A . x : \\prod x : A . A"
+        );
+
     }
 }
 
