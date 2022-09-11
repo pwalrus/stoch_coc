@@ -155,6 +155,7 @@ pub fn unpack_term(term: &CCExpression, context: &[Statement]) -> Vec<Judgement>
 mod tests {
     use super::*;
     use crate::parser::{parse_judgement};
+    use crate::type_check::{check_proof};
 
     #[test]
     fn simple_unpack() {
@@ -172,6 +173,8 @@ mod tests {
                    "A : \\ast \\vdash A : \\ast",
                    "A : \\ast, a : A \\vdash a : A"
         ]);
+        let refs = check_proof(&lines).unwrap();
+        assert_eq!(lines.len(), refs.len());
     }
 
     #[test]
@@ -188,6 +191,8 @@ mod tests {
                    "A : \\ast, x : A \\vdash A : \\ast",
                    "A : \\ast \\vdash \\prod x : A . A : \\ast"
         ]);
+        let refs = check_proof(&lines).unwrap();
+        assert_eq!(lines.len(), refs.len());
     }
 
     #[test]
@@ -206,6 +211,8 @@ mod tests {
                    "A : \\ast \\vdash \\prod x : A . A : \\ast",
                    "A : \\ast \\vdash \\lambda x : A . x : \\prod x : A . A"
         ]);
+        let refs = check_proof(&lines).unwrap();
+        assert_eq!(lines.len(), refs.len());
     }
 
     #[test]
@@ -227,6 +234,8 @@ mod tests {
                    "A : \\ast, y : A \\vdash \\lambda x : A . x : \\prod x : A . A",
                    "A : \\ast, y : A \\vdash (\\lambda x : A . x) y : A"
         ]);
+        let refs = check_proof(&lines).unwrap();
+        assert_eq!(lines.len(), refs.len());
     }
 }
 
