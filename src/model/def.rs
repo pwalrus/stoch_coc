@@ -1,5 +1,5 @@
 
-use super::judgement::{Statement};
+use super::statement::{Statement};
 
 #[derive(PartialEq,Debug)]
 pub struct Definition {

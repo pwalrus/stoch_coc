@@ -1,6 +1,7 @@
 
 use crate::model::expression::CCExpression;
-use crate::model::judgement::{Judgement, Statement};
+use crate::model::judgement::{Judgement};
+use crate::model::statement::{Statement};
 use crate::model::rules::base::{DerRule};
 
 pub struct SortRule {}

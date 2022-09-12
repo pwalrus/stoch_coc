@@ -1,24 +1,7 @@
 
 use super::expression::{CCExpression};
+use super::statement::{Statement};
 use std::collections::HashMap;
-
-
-#[derive(PartialEq,Debug,Clone)]
-pub struct Statement {
-    pub subject: CCExpression,
-    pub s_type: CCExpression
-}
-
-impl Statement {
-
-    pub fn to_latex(&self) -> String {
-        return self.subject.to_latex() + " : " + &self.s_type.to_latex()
-    }
-
-    pub fn alpha_equiv(&self, rhs: &Statement) -> bool {
-        return self.subject.alpha_equiv(&rhs.subject);
-    }
-}
 
 
 fn context_map(lhs: &[Statement], rhs: &[Statement]) -> Option<HashMap<String, String>> {
@@ -92,14 +75,6 @@ impl Judgement {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn to_latex_simple_stmt() {
-        let expr1 = CCExpression::Var(String::from("banana"));
-        let expr2 = CCExpression::Var(String::from("A"));
-        let stmt = Statement { subject: expr1, s_type: expr2 };
-        assert_eq!(stmt.to_latex(), String::from("banana : A"));
-    }
 
     #[test]
     fn to_latex_simple_judgement() {

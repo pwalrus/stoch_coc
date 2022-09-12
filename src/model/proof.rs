@@ -61,7 +61,7 @@ impl Proof {
 mod tests {
     use super::*;
     use crate::model::expression::{CCExpression};
-    use crate::model::judgement::{Statement};
+    use crate::model::statement::{Statement};
 
     #[test]
     fn simple_proof_to_latex() {

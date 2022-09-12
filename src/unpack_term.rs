@@ -1,4 +1,5 @@
-use crate::model::judgement::{Judgement, Statement};
+use crate::model::judgement::{Judgement};
+use crate::model::statement::{Statement};
 use crate::model::expression::{CCExpression};
 
 fn unpack_star(_: &[Statement]) -> Vec<Judgement> {

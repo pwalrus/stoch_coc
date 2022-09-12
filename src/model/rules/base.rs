@@ -1,6 +1,7 @@
 
 use crate::model::expression::CCExpression;
-use crate::model::judgement::{Judgement, Statement};
+use crate::model::judgement::{Judgement};
+use crate::model::statement::{Statement};
 
 fn alt_context(old_var: &String, new_var: &String, v_type: &CCExpression,
                context: &[Statement]) -> Vec<Statement> {
