@@ -1,12 +1,12 @@
 
 use super::judgement::{Statement};
 
-
+#[derive(PartialEq,Debug)]
 pub struct Definition {
-    context: Vec<Statement>,
-    name: String,
-    args: Vec<String>,
-    body: Statement
+    pub context: Vec<Statement>,
+    pub name: String,
+    pub args: Vec<String>,
+    pub body: Statement
 }
 
 impl Definition {

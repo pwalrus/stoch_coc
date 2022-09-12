@@ -2,13 +2,14 @@
 use crate::model::expression::CCExpression;
 use crate::model::judgement::Statement;
 use crate::model::judgement::Judgement;
+use crate::model::def::Definition;
 
 
 fn all_alpha_num(tokens: &[String]) -> bool {
     let meta_token: Vec<String> = vec![
-        String::from(","), 
-        String::from("\\vdash"), 
-        String::from("."), 
+        String::from(","),
+        String::from("\\vdash"),
+        String::from("."),
         String::from(":"),
         String::from("("),
         String::from(")"),
@@ -43,7 +44,16 @@ fn tokenize(expr: &str) -> Vec<String> {
     let mut start: usize = 0;
     let mut found: bool = false;
     for (idx, c) in expr.chars().enumerate() {
-        if ['.', ':', '(', ')', ','].contains(&c) {
+        if start > idx {
+        } else if c == ':' && idx + 1 < expr.len() && &expr[idx..idx+2] == ":=" {
+            if found {
+                output.push(String::from(&expr[start..idx]));
+                found = false;
+            }
+            output.push(String::from(":="));
+            start = idx + 2;
+        }
+        else if ['.', ':', '(', ')', ','].contains(&c) {
             if found {
                 output.push(String::from(&expr[start..idx]));
                 found = false;
@@ -89,8 +99,8 @@ impl TokenConsumer for VarConsumer {
 
     fn consume(&self, tokens: &[String]) -> Option<Consumed> {
         if all_alpha_num(&tokens[0..1]) {
-            return Some(Consumed { 
-                expr: CCExpression::Var(tokens[0].clone()), 
+            return Some(Consumed {
+                expr: CCExpression::Var(tokens[0].clone()),
                 remain: tokens[1..].to_vec()})
         } else {
             return None
@@ -152,7 +162,7 @@ struct AbsConsumer {}
 
 impl TokenConsumer for AbsConsumer {
     fn consume(&self, tokens: &[String]) -> Option<Consumed> {
-        if tokens.len() < 4 || 
+        if tokens.len() < 4 ||
             (tokens[0] != "\\lambda" && tokens[0] != "\\prod") {
             return None;
         }
@@ -232,7 +242,7 @@ fn find_expression(tokens: &[String]) -> Option<CCExpression> {
     let mut output = exprs[0].clone();
 
     for expr in &exprs[1..] {
-        output = CCExpression::Application(Box::new(output), 
+        output = CCExpression::Application(Box::new(output),
                                            Box::new(expr.clone()));
     }
     return Some(output)
@@ -243,12 +253,72 @@ fn find_statement(tokens: &[String]) -> Option<Statement> {
         if token == ":" {
             let subject = find_expression(&tokens[0..idx]);
             let s_type = find_expression(&tokens[idx+1..]);
-            if let Some(s) = subject {
-                if let Some(t) = s_type {
+            match (subject, s_type) {
+                (Some(s), Some(t)) => {
                     return Some(Statement {
                         subject: s,
                         s_type: t
                     });
+                },
+                _ => {}
+            }
+        }
+    }
+    return None
+}
+
+fn find_def_name(tokens: &[String]) -> Option<(String, Vec<String>)> {
+    let mut args: Vec<String> = vec![];
+    let mut last: usize = 0;
+    let mut name: Option<String> = None;
+
+    if !is_balanced(tokens) { return None; }
+    for (idx, token) in tokens.iter().enumerate() {
+        if idx > 0 && token == "(" {
+                name = Some(tokens[0..idx].join(" "));
+                last = idx + 1;
+        }
+    }
+
+    for (idx, token) in tokens.iter().enumerate() {
+        if idx >= last && token == "," {
+            args.push(tokens[last..idx].join(" "));
+            last = idx + 1;
+        } else if idx >= last && token == ")" {
+            args.push(tokens[last..idx].join(" "));
+            last = tokens.len();
+        } else if idx >= last {
+            if !all_alpha_num(&tokens[idx..idx+1]) {
+                return None;
+            }
+        }
+    }
+
+    return Some((name.unwrap(), args));
+}
+
+fn find_definition(tokens: &[String]) -> Option<Definition> {
+    for (idx1, token1) in tokens.iter().enumerate() {
+        if token1 == "\\vartriangleright" {
+            let ctx = find_context(&tokens[0..idx1]);
+            if let Some(c) = ctx {
+                for (idx2, token2) in tokens.iter().enumerate() {
+                    if token2 == ":=" {
+                        let def_name = find_def_name(&tokens[idx1+1..idx2]);
+                        let body = find_statement(&tokens[idx2+1..]);
+
+                        match (def_name, body) {
+                            (Some(d), Some(b)) => {
+                                return Some(Definition {
+                                    context: c,
+                                    name: d.0,
+                                    args: d.1,
+                                    body: b
+                                });
+                            }
+                            _ => {}
+                        }
+                    }
                 }
             }
         }
@@ -273,7 +343,7 @@ fn find_context(tokens: &[String]) -> Option<Vec<Statement>> {
     if let Some(s) = stmt {
         output.push(s);
         return Some(output);
-    } 
+    }
 
     return None
 }
@@ -447,6 +517,21 @@ mod tests {
         if let Some(x) = tree {
             assert_eq!(x.to_latex(), String::from("\\vdash \\ast : \\square"));
             assert!(matches!(x, Judgement{..}));
+        }
+    }
+
+    #[test]
+    fn parse_definition() {
+        let def1 = "x : A \\vartriangleright ex(x) := x : A";
+        let tokens = tokenize(&def1);
+        assert_eq!(tokens, vec![
+                   "x", ":", "A", "\\vartriangleright",
+                   "ex", "(", "x", ")", ":=", "x", ":", "A"
+        ]);
+        let tree = find_definition(&tokens);
+        assert_ne!(tree, None);
+        if let Some(x) = tree {
+            assert_eq!(x.to_latex(), def1);
         }
     }
 }
