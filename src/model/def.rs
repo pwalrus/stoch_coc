@@ -1,7 +1,7 @@
 
 use super::statement::{Statement};
 
-#[derive(PartialEq,Debug)]
+#[derive(PartialEq,Debug,Clone)]
 pub struct Definition {
     pub context: Vec<Statement>,
     pub name: String,

@@ -23,6 +23,7 @@ impl DerRule for ApplRule {
                         s_type: *r_type.clone()
                     };
                     return Some(Judgement {
+                        defs: f_jdg.defs.clone(),
                         context: f_jdg.context.clone(),
                         statement: stmt
                     });
@@ -54,12 +55,20 @@ mod tests {
                 Box::new(CCExpression::Var(String::from("B")))
                 )
         };
-        let jdg1 = Judgement { statement: stmt1, context: vec![] };
+        let jdg1 = Judgement {
+            defs: vec![],
+            statement: stmt1,
+            context: vec![]
+        };
         let stmt2 = Statement {
             subject: CCExpression::Var(String::from("N")),
             s_type: CCExpression::Var(String::from("A"))
         };
-        let jdg2 = Judgement { statement: stmt2, context: vec![] };
+        let jdg2 = Judgement {
+            defs: vec![],
+            statement: stmt2,
+            context: vec![]
+        };
         let stmt3 = Statement {
             subject: CCExpression::Application(
                 Box::new(CCExpression::Var(String::from("M"))),
@@ -67,7 +76,11 @@ mod tests {
              ),
             s_type: CCExpression::Var(String::from("B"))
         };
-        let jdg3 = Judgement { statement: stmt3, context: vec![] };
+        let jdg3 = Judgement {
+            defs: vec![],
+            statement: stmt3,
+            context: vec![]
+        };
         assert_eq!(&jdg1.to_latex(), "\\vdash M : \\prod x : A . B");
         assert_eq!(&jdg2.to_latex(), "\\vdash N : A");
         let output = rule.apply(Some(&jdg1), Some(&jdg2));

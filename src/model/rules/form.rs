@@ -40,6 +40,7 @@ impl DerRule for FormRule {
                             s_type: jdg2.statement.s_type.clone()
                         };
                         return Some(Judgement {
+                            defs: jdg1.defs.clone(),
                             statement: new_stmt,
                             context: ctx
                         });
@@ -77,10 +78,12 @@ mod tests {
             s_type: CCExpression::Var(String::from("A"))
         };
         let judg1 = Judgement {
+            defs: vec![],
             context: vec![],
             statement: stmt1
         };
         let judg2 = Judgement {
+            defs: vec![],
             context: vec![stmt3],
             statement: stmt2
         };

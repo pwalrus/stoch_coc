@@ -43,6 +43,7 @@ pub fn abst_alternatives(jdg: &Judgement) -> Vec<Judgement> {
                     s_type: jdg.statement.s_type.clone()
                 };
                 Judgement {
+                    defs: jdg.defs.clone(),
                     context: ctx,
                     statement: new_stmt
                 }

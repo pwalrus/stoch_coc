@@ -17,6 +17,7 @@ impl DerRule for WeakRule {
                         s_type: t_judge.statement.subject.clone()
                     };
                     return Some(Judgement {
+                        defs: judge.defs.clone(),
                         context: [judge.context.clone(), vec![stmt]].concat(),
                         statement: judge.statement.clone()
                     });
@@ -49,9 +50,11 @@ mod tests {
             s_type: CCExpression::Star
         };
         let output = rule.apply(Some(&Judgement {
+            defs: vec![],
             context: vec![],
             statement: stmt1.clone()
         }), Some(&Judgement {
+            defs: vec![],
             context: vec![],
             statement: stmt2
         }));

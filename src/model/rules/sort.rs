@@ -15,6 +15,7 @@ impl DerRule for SortRule {
             s_type: CCExpression::Sq
         };
         return Some(Judgement {
+            defs: vec![],
             context: vec![],
             statement: stmt
         })

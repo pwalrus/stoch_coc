@@ -19,6 +19,7 @@ impl DerRule for ConvRule {
                     s_type: other_judge.statement.subject.clone()
                 };
                 return Some(Judgement {
+                    defs: vec![],
                     context: orig_judge.context.clone(),
                     statement: stmt
                 })
@@ -56,6 +57,7 @@ mod tests {
             s_type: t1.clone()
         };
         let judg1 = Judgement {
+            defs: vec![],
             context: vec![],
             statement: stmt1
         };
@@ -64,6 +66,7 @@ mod tests {
             s_type: CCExpression::Star
         };
         let judg2 = Judgement {
+            defs: vec![],
             context: vec![],
             statement: stmt2
         };
@@ -72,6 +75,7 @@ mod tests {
             s_type: t2.clone()
         };
         let judg3 = Judgement {
+            defs: vec![],
             context: vec![],
             statement: stmt3
         };

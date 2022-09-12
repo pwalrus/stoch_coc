@@ -20,6 +20,7 @@ impl DerRule for VarRule {
                         subject: CCExpression::Var(next) 
                     };
                     return Some(Judgement {
+                        defs: in_judge.defs.clone(),
                         context: [
                             in_judge.context.clone(),
                             vec![new_stmt.clone()]].concat(),
@@ -34,6 +35,7 @@ impl DerRule for VarRule {
                     subject: CCExpression::Var(next) 
                 };
                 return Some(Judgement {
+                    defs: in_judge.defs.clone(),
                     context: [
                         in_judge.context.clone(),
                         vec![new_stmt.clone()]].concat(),
@@ -63,6 +65,7 @@ mod tests {
             s_type: CCExpression::Star
         };
         let jdg = Judgement {
+            defs: vec![],
             context: vec![],
             statement: stmt
         };

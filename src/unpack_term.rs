@@ -9,6 +9,7 @@ fn unpack_star(_: &[Statement]) -> Vec<Judgement> {
     };
 
     return vec![Judgement {
+        defs: vec![],
         statement: stmt,
         context: vec![]
     }];
@@ -36,6 +37,7 @@ fn unpack_var(var: &str, context: &[Statement]) -> Vec<Judgement> {
             }).collect();
 
         return [unpack_term(&stmt.s_type, &ctx2), vec![Judgement {
+            defs: vec![],
             statement: stmt,
             context: context.to_vec()
         }]].concat();
@@ -56,6 +58,7 @@ fn unpack_type_abs(var: &str, v_type: &CCExpression, ret: &CCExpression,
         return vec![];
     }
     let last = Judgement {
+        defs: vec![],
         context: context.to_vec(),
         statement: Statement {
             subject: CCExpression::TypeAbs(String::from(var),
@@ -90,6 +93,7 @@ fn unpack_abs(var: &str, v_type: &CCExpression, ret: &CCExpression,
     if p2.len() == 0 { return vec![]; }
 
     let last = Judgement {
+        defs: vec![],
         context: context.to_vec(),
         statement: Statement {
             subject: CCExpression::Abs(String::from(var),
@@ -110,6 +114,7 @@ fn unpack_appl(lhs: &CCExpression, rhs: &CCExpression,
     let ret_type = p1.last().unwrap().statement.s_type.clone();
     if let CCExpression::TypeAbs(_x, _v_type, inner_ret) = ret_type {
         let last = Judgement {
+            defs: vec![],
             context: context.to_vec(),
             statement: Statement {
                 subject: CCExpression::Application(Box::new(lhs.clone()),

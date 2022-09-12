@@ -369,11 +369,13 @@ pub fn parse_judgement(expr: &str) -> Option<Judgement> {
             if let Some(s) = statement {
                 if let Some(c) = context {
                     return Some(Judgement {
+                        defs: vec![],
                         context: c,
                         statement: s
                     });
                 } else if idx == 0 {
                     return Some(Judgement {
+                        defs: vec![],
                         context: vec![],
                         statement: s
                     });

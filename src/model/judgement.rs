@@ -1,6 +1,7 @@
 
 use super::expression::{CCExpression};
 use super::statement::{Statement};
+use super::def::{Definition};
 use std::collections::HashMap;
 
 
@@ -23,6 +24,7 @@ fn context_map(lhs: &[Statement], rhs: &[Statement]) -> Option<HashMap<String, S
 
 #[derive(PartialEq,Debug,Clone)]
 pub struct Judgement {
+    pub defs: Vec<Definition>,
     pub context: Vec<Statement>,
     pub statement: Statement
 }
@@ -88,10 +90,12 @@ mod tests {
         let expr6 = CCExpression::Var(String::from("C"));
         let stmt3 = Statement { subject: expr5, s_type: expr6 };
         let judge = Judgement {
+            defs: vec![],
             context: vec![stmt1.clone(), stmt2],
             statement: stmt3.clone()
         };
         let judge2 = Judgement {
+            defs: vec![],
             context: vec![stmt1],
             statement: stmt3
         };
@@ -113,10 +117,12 @@ mod tests {
         let expr4 = CCExpression::Star;
         let stmt2 = Statement { subject: expr3, s_type: expr4 };
         let jdg1 = Judgement {
+            defs: vec![],
             context: vec![stmt1.clone()],
             statement: stmt1
         };
         let jdg2 = Judgement {
+            defs: vec![],
             context: vec![stmt2.clone()],
             statement: stmt2
         };

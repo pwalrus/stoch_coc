@@ -74,10 +74,12 @@ mod tests {
             s_type: CCExpression::Star
         };
         let judge1 = Judgement {
+            defs: vec![],
             context: vec![],
             statement: stmt1
         };
         let judge2 = Judgement {
+            defs: vec![],
             context: vec![stmt2.clone()],
             statement: stmt2
         };

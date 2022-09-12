@@ -45,6 +45,7 @@ impl DerRule for AbstRule {
                                     r_type.clone())
                             };
                             return Some(Judgement {
+                                defs: vec![],
                                 context: new_ctx,
                                 statement: stmt
                             });
@@ -59,7 +60,7 @@ impl DerRule for AbstRule {
     fn name(&self) -> String {
         return String::from("abst");
     }
-    
+
     fn sig_size(&self) -> u32 { return 2; }
 }
 
@@ -78,7 +79,11 @@ mod tests {
             subject: CCExpression::Var(String::from("x")),
             s_type: CCExpression::Var(String::from("A"))
         };
-        let jdg1 = Judgement { statement: stmt1, context: vec![stmt1c] };
+        let jdg1 = Judgement {
+            defs: vec![],
+            statement: stmt1,
+            context: vec![stmt1c]
+        };
         let stmt2 = Statement {
             s_type: CCExpression::Sq,
             subject: CCExpression::TypeAbs(
@@ -87,7 +92,11 @@ mod tests {
                 Box::new(CCExpression::Var(String::from("B")))
                 )
         };
-        let jdg2 = Judgement { statement: stmt2, context: vec![] };
+        let jdg2 = Judgement {
+            defs:vec![],
+            statement: stmt2,
+            context: vec![]
+        };
         let stmt3 = Statement {
             subject: CCExpression::Abs(
                 String::from("x"),
@@ -100,7 +109,11 @@ mod tests {
                 Box::new(CCExpression::Var(String::from("B")))
                 )
         };
-        let jdg3 = Judgement { statement: stmt3, context: vec![] };
+        let jdg3 = Judgement {
+            defs: vec![],
+            statement: stmt3,
+            context: vec![]
+        };
         assert_eq!(jdg1.to_latex(), "x : A \\vdash M : B");
         assert_eq!(jdg2.to_latex(), "\\vdash \\prod x : A . B : \\square");
         assert_eq!(jdg3.to_latex(), "\\vdash \\lambda x : A . M : \\prod x : A . B");
