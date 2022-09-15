@@ -16,6 +16,10 @@ impl Statement {
     pub fn alpha_equiv(&self, rhs: &Statement) -> bool {
         return self.subject.alpha_equiv(&rhs.subject);
     }
+
+    pub fn primative(&self) -> bool {
+        return self.subject.primative();
+    }
 }
 
 #[cfg(test)]
@@ -28,5 +32,6 @@ mod tests {
         let expr2 = CCExpression::Var(String::from("A"));
         let stmt = Statement { subject: expr1, s_type: expr2 };
         assert_eq!(stmt.to_latex(), String::from("banana : A"));
+        assert_eq!(stmt.primative(), false);
     }
 }

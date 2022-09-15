@@ -149,6 +149,7 @@ pub fn unpack_term(term: &CCExpression, context: &[Statement]) -> Vec<Judgement>
     match term {
         CCExpression::Star => unpack_star(context),
         CCExpression::Sq => vec![],
+        CCExpression::Prim => vec![],
         CCExpression::Var(x) => unpack_var(&x, context),
         CCExpression::Abs(x, v_type, ret) => unpack_abs(&x, &v_type, &ret, context),
         CCExpression::TypeAbs(x, v_type, ret) => unpack_type_abs(&x, &v_type, &ret, context),

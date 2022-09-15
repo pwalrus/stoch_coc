@@ -4,6 +4,7 @@ pub enum CCExpression {
     Var(String),
     Sq,
     Star,
+    Prim,
     Application(Box<CCExpression>, Box<CCExpression>),
     Abs(String, Box<CCExpression>, Box<CCExpression>),
     TypeAbs(String, Box<CCExpression>, Box<CCExpression>),
@@ -17,6 +18,7 @@ impl CCExpression {
             CCExpression::Var(x) => x.to_string(),
             CCExpression::Sq => String::from("\\square"),
             CCExpression::Star => String::from("\\ast"),
+            CCExpression::Prim => String::from("\\independent"),
             CCExpression::Application(left, right) => {
                 let r_out = if let CCExpression::Var(_) = **right {
                      right.to_latex()
@@ -45,6 +47,13 @@ impl CCExpression {
         match self {
             CCExpression::Var(x) => Some(x.to_string()),
             _ => None
+        }
+    }
+
+    pub fn primative(&self) -> bool {
+        match self {
+            CCExpression::Prim => true,
+            _ => false
         }
     }
 
@@ -92,6 +101,7 @@ impl CCExpression {
         match self {
             CCExpression::Star => CCExpression::Star,
             CCExpression::Sq => CCExpression::Sq,
+            CCExpression::Prim => CCExpression::Prim,
             CCExpression::Var(x) => {
                 if x == token { expr.clone() }
                 else { CCExpression::Var(x.clone()) }
@@ -132,6 +142,7 @@ impl CCExpression {
         match (self, rhs) {
             (CCExpression::Star, CCExpression::Star) => true,
             (CCExpression::Sq, CCExpression::Sq) => true,
+            (CCExpression::Prim, CCExpression::Prim) => true,
             (CCExpression::Var(l), CCExpression::Var(r)) => l == r,
             (CCExpression::Application(q, r), 
             CCExpression::Application(x, y)) => {
@@ -165,6 +176,7 @@ impl CCExpression {
         match self {
             CCExpression::Star => CCExpression::Star,
             CCExpression::Sq => CCExpression::Sq,
+            CCExpression::Prim => CCExpression::Prim,
             CCExpression::Var(x) => CCExpression::Var(x.clone()),
             CCExpression::Application(lhs, rhs) => {
                 let l = lhs.beta_reduce();
@@ -193,6 +205,7 @@ impl Clone for CCExpression {
             CCExpression::Var(x) => CCExpression::Var(x.clone()),
             CCExpression::Sq => CCExpression::Sq,
             CCExpression::Star => CCExpression::Star,
+            CCExpression::Prim => CCExpression::Prim,
             CCExpression::Application(left, right) => {
                 CCExpression::Application(left.clone(), 
                                           right.clone())
@@ -221,6 +234,7 @@ mod tests {
     fn to_latex_simple_var() {
         let expr1 = CCExpression::Var(String::from("banana"));
         assert_eq!(expr1.to_latex(), "banana");
+        assert_eq!(expr1.primative(), false);
         assert_eq!(expr1.var_str(), Some("banana".to_string()))
     }
 
@@ -235,6 +249,13 @@ mod tests {
     fn to_latex_simple_star() {
         let expr1 = CCExpression::Star;
         assert_eq!(expr1.to_latex(), "\\ast");
+    }
+
+    #[test]
+    fn to_latex_simple_prim() {
+        let expr1 = CCExpression::Prim;
+        assert_eq!(expr1.to_latex(), "\\independent");
+        assert_eq!(expr1.primative(), true)
     }
 
     #[test]
