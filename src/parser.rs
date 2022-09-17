@@ -16,6 +16,7 @@ fn all_alpha_num(tokens: &[String]) -> bool {
         String::from("\\lambda"),
         String::from("\\ast"),
         String::from("\\square"),
+        String::from("\\independent"),
         String::from("\\prod")];
     let assessment: Option<bool> = tokens.into_iter().map(
         |t| !meta_token.contains(t)
@@ -158,6 +159,19 @@ impl TokenConsumer for SqConsumer {
     }
 }
 
+struct PrimConsumer {}
+
+impl TokenConsumer for PrimConsumer {
+    fn consume(&self, tokens: &[String]) -> Option<Consumed> {
+        if tokens.len() == 0 || tokens[0] != "\\independent" {
+            return None
+        }
+        return Some(Consumed {
+            expr: CCExpression::Prim,
+            remain: tokens[1..].to_vec()})
+    }
+}
+
 struct AbsConsumer {}
 
 impl TokenConsumer for AbsConsumer {
@@ -216,6 +230,7 @@ fn consume_expressions(tokens: &[String]) -> Vec<CCExpression> {
         &ParenConsumer{},
         &StarConsumer{},
         &SqConsumer{},
+        &PrimConsumer{},
         &AbsConsumer{}
     ];
 
@@ -469,6 +484,16 @@ mod tests {
         if let Some(x) = tree {
             assert_eq!(x.to_latex(), String::from("\\square"));
             assert!(matches!(x, CCExpression::Sq {..}));
+        }
+    }
+
+    #[test]
+    fn parse_prim() {
+        let tree = parse(&String::from("\\independent"));
+        assert_ne!(tree, None);
+        if let Some(x) = tree {
+            assert_eq!(x.to_latex(), String::from("\\independent"));
+            assert!(matches!(x, CCExpression::Prim {..}));
         }
     }
 
