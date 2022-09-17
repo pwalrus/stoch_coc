@@ -4,6 +4,15 @@ use crate::model::statement::Statement;
 use crate::model::judgement::Judgement;
 use crate::model::def::Definition;
 
+fn next_unused_var(used: &[String]) -> String {
+    for ch in 'a'..'z' {
+        if !used.contains(&ch.to_string()) {
+            return ch.to_string();
+        }
+    }
+    return String::from("x");
+}
+
 
 fn all_alpha_num(tokens: &[String]) -> bool {
     let meta_token: Vec<String> = vec![
@@ -17,6 +26,7 @@ fn all_alpha_num(tokens: &[String]) -> bool {
         String::from("\\ast"),
         String::from("\\square"),
         String::from("\\independent"),
+        String::from("\\to"),
         String::from("\\prod")];
     let assessment: Option<bool> = tokens.into_iter().map(
         |t| !meta_token.contains(t)
@@ -221,11 +231,43 @@ impl TokenConsumer for AbsConsumer {
     }
 }
 
+struct ToConsumer {}
+
+impl TokenConsumer for ToConsumer {
+    fn consume(&self, tokens: &[String]) -> Option<Consumed> {
+        if tokens.len() > 2 {
+            for (idx1, token1) in tokens.iter().enumerate() {
+                if token1 == "\\to" {
+                    let ante = find_expression(&tokens[0..idx1]);
+                    let cnsq = find_expression(&tokens[idx1+1..]);
+                    match (ante, cnsq) {
+                        (Some(a), Some(c)) => {
+                            let var = next_unused_var(&c.free_var());
+                            let expr = CCExpression::TypeAbs(
+                                var.to_string(),
+                                Box::new(a.clone()),
+                                Box::new(c.clone())
+                                );
+                            return Some(Consumed {
+                                expr: expr,
+                                remain: vec![]
+                            });
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+        return None;
+    }
+}
+
 fn consume_expressions(tokens: &[String]) -> Vec<CCExpression> {
     if tokens.len() == 0 {
         return vec![];
     }
     let consumers: Vec<&dyn TokenConsumer> = vec![
+        &ToConsumer{},
         &VarConsumer{},
         &ParenConsumer{},
         &StarConsumer{},
@@ -559,6 +601,20 @@ mod tests {
         assert_ne!(tree, None);
         if let Some(x) = tree {
             assert_eq!(x.to_latex(), def1);
+        }
+    }
+
+    #[test]
+    fn parse_to_arrow() {
+        let expr = "A \\to B a";
+        let tokens = tokenize(&expr);
+        assert_eq!(tokens, vec![
+                   "A", "\\to", "B", "a",
+        ]);
+        let tree = parse(&expr);
+        assert_ne!(tree, None);
+        if let Some(x) = tree {
+            assert_eq!(x.to_latex(), "\\prod b : A . B a");
         }
     }
 }
