@@ -1,5 +1,6 @@
 
 use crate::model::judgement::{Judgement};
+use crate::model::def::{Definition};
 use crate::parser::{parse_judgement};
 use crate::model::rules::ruleset::{all_rules};
 use crate::model::rules::base::{DerRule, abst_alternatives};
@@ -66,8 +67,9 @@ fn rule_applies_zero(jdg: &Judgement,
 }
 
 
-pub fn check_proof(judges: &[Judgement]) -> Result<Vec<LineRef>, String> {
-    let rules = all_rules();
+pub fn check_proof(defs: &[Definition], 
+                   judges: &[Judgement]) -> Result<Vec<LineRef>, String> {
+    let rules = all_rules(defs);
     let mut output: Vec<LineRef> = vec![];
     for (idx, jdg) in judges.iter().enumerate() {
         let mut found : Option<LineRef> = None;
@@ -105,7 +107,7 @@ mod tests {
         let lines: Vec<Judgement> = vec![
             parse_judgement("\\vdash \\ast : \\square").unwrap()
         ];
-        let refs = check_proof(&lines);
+        let refs = check_proof(&[], &lines);
         if let Ok(r) = refs {
             assert_eq!(r, vec![
                LineRef { rule: String::from("sort"),
@@ -124,7 +126,7 @@ mod tests {
             parse_judgement("\\vdash \\ast : \\square").unwrap(),
             parse_judgement("B : \\ast \\vdash B : \\ast").unwrap()
         ];
-        let refs = check_proof(&lines);
+        let refs = check_proof(&[], &lines);
         if let Ok(r) = refs {
             assert_eq!(r, vec![
                LineRef { rule: String::from("sort"),
@@ -145,7 +147,7 @@ mod tests {
             parse_judgement("\\vdash \\ast : \\square").unwrap(),
             parse_judgement("A : \\ast \\vdash B : \\ast").unwrap()
         ];
-        let refs = check_proof(&lines);
+        let refs = check_proof(&[], &lines);
 
         assert!(matches!(refs, Result::Err{ .. }));
     }
@@ -160,7 +162,7 @@ mod tests {
             parse_judgement("A : \\ast \\vdash \\prod x  : A . A : \\ast").unwrap(),
             parse_judgement("A : \\ast \\vdash \\lambda x : A . x : \\prod x  : A . A").unwrap()
         ];
-        let refs = check_proof(&lines);
+        let refs = check_proof(&[], &lines);
 
         if let Ok(r) = refs {
             let r_str: Vec<String> = r.iter().filter_map(|x|

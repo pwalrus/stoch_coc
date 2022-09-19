@@ -58,7 +58,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn tokenize_var() {
+    fn simple_var_check() {
         let rule = VarRule {};
         let stmt = Statement {
             subject: CCExpression::Var(String::from("A")),

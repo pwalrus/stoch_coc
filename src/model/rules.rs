@@ -7,4 +7,5 @@ mod form;
 mod appl;
 mod abst;
 mod conv;
+mod inst;
 pub mod ruleset;
