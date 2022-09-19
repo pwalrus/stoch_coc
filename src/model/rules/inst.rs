@@ -62,7 +62,7 @@ mod tests {
         };
 
         assert_eq!(jdg.to_latex(), "I : \\ast \\vdash I : \\ast");
-        assert_eq!(def.to_latex(), "A : \\ast \\vartriangleright id(A) := \\lambda x : A . x : \\prod x : A . A");
+        assert_eq!(def.to_latex(), "A : \\ast \\vartriangleright id \\langle A \\rangle := \\lambda x : A . x : \\prod x : A . A");
 
         /*
         let output = rule.apply(Some(&jdg), None);

@@ -27,6 +27,8 @@ fn all_alpha_num(tokens: &[String]) -> bool {
         String::from("\\square"),
         String::from("\\independent"),
         String::from("\\to"),
+        String::from("\\langle"),
+        String::from("\\rangle"),
         String::from("\\prod")];
     let assessment: Option<bool> = tokens.into_iter().map(
         |t| !meta_token.contains(t)
@@ -40,9 +42,9 @@ fn all_alpha_num(tokens: &[String]) -> bool {
 fn is_balanced(tokens: &[String]) -> bool {
     let mut balance: i32 = 0;
     for token in tokens {
-        if token == "(" {
+        if ["(".to_string(), "\\langle".to_string()].contains(token) {
             balance += 1;
-        } else if token == ")" {
+        } else if [")".to_string(), "\\rangle".to_string()].contains(token) {
             balance -= 1;
         }
     }
@@ -330,18 +332,16 @@ fn find_def_name(tokens: &[String]) -> Option<(String, Vec<String>)> {
     let mut name: Option<String> = None;
 
     if !is_balanced(tokens) { return None; }
-    for (idx, token) in tokens.iter().enumerate() {
-        if idx > 0 && token == "(" {
-                name = Some(tokens[0..idx].join(" "));
-                last = idx + 1;
-        }
+    if tokens.len() > 2 && ["(".to_string(), "\\langle".to_string()].contains(&tokens[1]) {
+            name = Some(tokens[0].clone());
+            last = 2;
     }
 
     for (idx, token) in tokens.iter().enumerate() {
         if idx >= last && token == "," {
             args.push(tokens[last..idx].join(" "));
             last = idx + 1;
-        } else if idx >= last && token == ")" {
+        } else if idx >= last && [")".to_string(), "\\rangle".to_string()].contains(token) {
             args.push(tokens[last..idx].join(" "));
             last = tokens.len();
         } else if idx >= last {
@@ -591,11 +591,11 @@ mod tests {
 
     #[test]
     fn parse_definition() {
-        let def1 = "x : A \\vartriangleright ex(x) := x : A";
+        let def1 = "x : A \\vartriangleright ex \\langle x \\rangle := x : A";
         let tokens = tokenize(&def1);
         assert_eq!(tokens, vec![
                    "x", ":", "A", "\\vartriangleright",
-                   "ex", "(", "x", ")", ":=", "x", ":", "A"
+                   "ex", "\\langle", "x", "\\rangle", ":=", "x", ":", "A"
         ]);
         let tree = find_definition(&tokens);
         assert_ne!(tree, None);

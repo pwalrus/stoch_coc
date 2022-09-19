@@ -15,7 +15,7 @@ impl Definition {
             |x| Some(x.to_latex())
             ).collect::<Vec<String>>().join(", ");
         let args_str: String = self.args.join(", ");
-        return format!("{} \\vartriangleright {}({}) := {}",
+        return format!("{} \\vartriangleright {} \\langle {} \\rangle := {}",
         ctx_str,
         self.name,
         args_str,
@@ -45,7 +45,7 @@ mod tests {
         };
 
         assert_eq!(def1.to_latex(),
-                   "x : A \\vartriangleright ex(x) := x : A");
+                   "x : A \\vartriangleright ex \\langle x \\rangle := x : A");
     }
 }
 
