@@ -151,6 +151,7 @@ pub fn unpack_term(term: &CCExpression, context: &[Statement]) -> Vec<Judgement>
         CCExpression::Sq => vec![],
         CCExpression::Prim => vec![],
         CCExpression::Var(x) => unpack_var(&x, context),
+        CCExpression::Def(name, args) => todo!(),
         CCExpression::Abs(x, v_type, ret) => unpack_abs(&x, &v_type, &ret, context),
         CCExpression::TypeAbs(x, v_type, ret) => unpack_type_abs(&x, &v_type, &ret, context),
         CCExpression::Application(lhs, rhs) => unpack_appl(&lhs, &rhs, context)

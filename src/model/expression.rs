@@ -5,6 +5,7 @@ pub enum CCExpression {
     Sq,
     Star,
     Prim,
+    Def(String, Vec<CCExpression>),
     Application(Box<CCExpression>, Box<CCExpression>),
     Abs(String, Box<CCExpression>, Box<CCExpression>),
     TypeAbs(String, Box<CCExpression>, Box<CCExpression>),
@@ -19,6 +20,12 @@ impl CCExpression {
             CCExpression::Sq => String::from("\\square"),
             CCExpression::Star => String::from("\\ast"),
             CCExpression::Prim => String::from("\\independent"),
+            CCExpression::Def(name, args) => {
+                let arg_list = args.iter().filter_map(
+                    |x| Some(x.to_latex())
+                    ).collect::<Vec<String>>().join(", ");
+                format!("{} \\langle {} \\rangle", name, arg_list)
+            },
             CCExpression::Application(left, right) => {
                 let r_out = if let CCExpression::Var(_) = **right {
                      right.to_latex()
@@ -28,6 +35,7 @@ impl CCExpression {
                 let l_out = match **left {
                     CCExpression::Var(_) => left.to_latex(),
                     CCExpression::Application(_, _) => left.to_latex(),
+                    CCExpression::Def(_, _) => left.to_latex(),
                     _ => String::from("(") + &left.to_latex() + ")"
                 };
                 l_out + " " + &r_out
@@ -59,6 +67,9 @@ impl CCExpression {
 
     pub fn sub_terms(&self) -> Vec<CCExpression> {
         match self {
+            CCExpression::Def(_, args) => {
+                [vec![self.clone()], args.clone()].concat()
+            },
             CCExpression::Application(left, right) => {
                 [vec![self.clone()], left.sub_terms(),
                 right.sub_terms()].concat()
@@ -102,13 +113,21 @@ impl CCExpression {
             CCExpression::Star => CCExpression::Star,
             CCExpression::Sq => CCExpression::Sq,
             CCExpression::Prim => CCExpression::Prim,
+            CCExpression::Def(name, args) => {
+                CCExpression::Def(
+                    name.clone(),
+                    args.iter().filter_map(
+                        |x| Some(x.substitute(token, expr))
+                        ).collect()
+                    )
+            },
             CCExpression::Var(x) => {
                 if x == token { expr.clone() }
                 else { CCExpression::Var(x.clone()) }
             },
             CCExpression::Abs(x, a_type, ret) => {
                 if x == token { CCExpression::Abs(
-                        String::from(x), 
+                        String::from(x),
                         a_type.clone(), 
                         ret.clone()) }
                 else { CCExpression::Abs(
@@ -143,6 +162,12 @@ impl CCExpression {
             (CCExpression::Star, CCExpression::Star) => true,
             (CCExpression::Sq, CCExpression::Sq) => true,
             (CCExpression::Prim, CCExpression::Prim) => true,
+            (CCExpression::Def(lname, largs), CCExpression::Def(rname, rargs)) => {
+                let names_match: bool = lname == rname;
+                let args_match: bool = largs.iter().zip(rargs).all(
+                    |(l, r)| l.alpha_equiv(r));
+                names_match && args_match
+            },
             (CCExpression::Var(l), CCExpression::Var(r)) => l == r,
             (CCExpression::Application(q, r), 
             CCExpression::Application(x, y)) => {
@@ -206,6 +231,9 @@ impl Clone for CCExpression {
             CCExpression::Sq => CCExpression::Sq,
             CCExpression::Star => CCExpression::Star,
             CCExpression::Prim => CCExpression::Prim,
+            CCExpression::Def(name, args) => {
+                CCExpression::Def(name.clone(), args.clone())
+            }
             CCExpression::Application(left, right) => {
                 CCExpression::Application(left.clone(), 
                                           right.clone())
@@ -256,6 +284,18 @@ mod tests {
         let expr1 = CCExpression::Prim;
         assert_eq!(expr1.to_latex(), "\\independent");
         assert_eq!(expr1.primative(), true)
+    }
+
+    #[test]
+    fn to_latex_simple_def() {
+        let arg1 = CCExpression::Var(String::from("a"));
+        let arg2 = CCExpression::Var(String::from("b"));
+        let expr1 = CCExpression::Def(
+            "ex".to_string(),
+            vec![arg1, arg2]
+            );
+
+        assert_eq!(expr1.to_latex(), "ex \\langle a, b \\rangle");
     }
 
     #[test]

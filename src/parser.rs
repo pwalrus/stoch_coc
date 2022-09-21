@@ -264,6 +264,45 @@ impl TokenConsumer for ToConsumer {
     }
 }
 
+struct DefConsumer {}
+
+impl TokenConsumer for DefConsumer {
+    fn consume(&self, tokens: &[String]) -> Option<Consumed> {
+        let mut args: Vec<CCExpression> = vec![];
+        let mut last: usize = 2;
+
+        if tokens.len() <= 2 || tokens[1] != "\\langle" {
+            return None
+        }
+
+        let name = tokens[0].clone();
+
+        for (idx, token) in tokens.iter().enumerate() {
+            if idx >= last && token == "," {
+                if let Some(expr) = find_expression(&tokens[last..idx]) {
+                    args.push(expr);
+                    last = idx + 1;
+                }
+            } else if idx >= last && token == "\\rangle" {
+                if let Some(expr) = find_expression(&tokens[last..idx]) {
+                    args.push(expr);
+                    let output = CCExpression::Def(
+                        name,
+                        args
+                        );
+                    return Some(Consumed {
+                        expr: output,
+                        remain: tokens[idx+1..].to_vec()
+                    });
+
+                }
+            }
+        }
+
+        return None;
+    }
+}
+
 fn consume_expressions(tokens: &[String]) -> Vec<CCExpression> {
     if tokens.len() == 0 {
         return vec![];
@@ -275,6 +314,7 @@ fn consume_expressions(tokens: &[String]) -> Vec<CCExpression> {
         &StarConsumer{},
         &SqConsumer{},
         &PrimConsumer{},
+        &DefConsumer{},
         &AbsConsumer{}
     ];
 
@@ -598,6 +638,20 @@ mod tests {
                    "ex", "\\langle", "x", "\\rangle", ":=", "x", ":", "A"
         ]);
         let tree = find_definition(&tokens);
+        assert_ne!(tree, None);
+        if let Some(x) = tree {
+            assert_eq!(x.to_latex(), def1);
+        }
+    }
+
+    #[test]
+    fn parse_expr_definition() {
+        let def1 = "ex \\langle a c, b \\rangle x";
+        let tokens = tokenize(&def1);
+        assert_eq!(tokens, vec![
+                   "ex", "\\langle", "a", "c", ",", "b", "\\rangle", "x"
+        ]);
+        let tree = find_expression(&tokens);
         assert_ne!(tree, None);
         if let Some(x) = tree {
             assert_eq!(x.to_latex(), def1);
