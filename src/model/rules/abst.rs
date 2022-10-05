@@ -2,7 +2,7 @@
 use crate::model::expression::CCExpression;
 use crate::model::judgement::{Judgement};
 use crate::model::statement::{Statement};
-use crate::model::rules::base::{DerRule};
+use crate::model::rules::base::{DerRule, abst_alt_equiv};
 
 fn find_matching_stmt(context: &[Statement], stmt: &CCExpression) -> Option<Statement> {
     for x in context {
@@ -62,6 +62,16 @@ impl DerRule for AbstRule {
     }
 
     fn sig_size(&self) -> u32 { return 2; }
+
+    fn validate(&self, lhs: Option<&Judgement>, rhs: Option<&Judgement>,
+                    result: &Judgement) -> bool {
+        if let Some(j) = self.apply(lhs, rhs) {
+            if j.alpha_equiv(&result) || abst_alt_equiv(&j, &result) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
 
 #[cfg(test)]

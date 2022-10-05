@@ -7,44 +7,17 @@ use crate::model::rules::base::{DerRule, abst_alternatives};
 use crate::model::proof::{LineRef};
 
 
-fn abst_alt_equiv(j1: &Judgement, j2: &Judgement) -> bool {
-    let alts = abst_alternatives(j1);
-    for alt in alts {
-        if alt.alpha_equiv(j2) { return true; }
-    }
-    return false;
-}
-
 fn rule_applies_two(jdg: &Judgement,
                     rule: &dyn DerRule,
                     lines: &[Judgement]
                     )  -> Option<LineRef> {
     for (idx1, j1) in lines.iter().enumerate() {
         for (idx2, j2) in lines.iter().enumerate() {
-            if let Some(j) = rule.apply(Some(j1), Some(j2)) {
-                if j.alpha_equiv(&jdg) || abst_alt_equiv(&j, &jdg) {
-                    return Some(LineRef {
-                        rule: rule.name(),
-                        line1: Some(idx1 as u32),
-                        line2: Some(idx2 as u32)
-                    });
-                }
-            }
-        }
-    }
-    return None;
-}
-fn rule_applies_one(jdg: &Judgement,
-                    rule: &dyn DerRule,
-                    lines: &[Judgement]
-                    )  -> Option<LineRef> {
-    for (idx1, j1) in lines.iter().enumerate() {
-        if let Some(j) = rule.apply(Some(j1), None) {
-            if j.alpha_equiv(jdg) {
+            if rule.validate(Some(j1), Some(j2), jdg) {
                 return Some(LineRef {
                     rule: rule.name(),
                     line1: Some(idx1 as u32),
-                    line2: None
+                    line2: Some(idx2 as u32)
                 });
             }
         }
@@ -52,16 +25,30 @@ fn rule_applies_one(jdg: &Judgement,
     return None;
 }
 
-fn rule_applies_zero(jdg: &Judgement,
-                     rule: &dyn DerRule)  -> Option<LineRef> {
-    if let Some(j) = rule.apply(None, None) {
-        if &j == jdg {
+fn rule_applies_one(jdg: &Judgement,
+                    rule: &dyn DerRule,
+                    lines: &[Judgement]
+                    )  -> Option<LineRef> {
+    for (idx1, j1) in lines.iter().enumerate() {
+        if rule.validate(Some(j1), None, jdg) {
             return Some(LineRef {
                 rule: rule.name(),
-                line1: None,
+                line1: Some(idx1 as u32),
                 line2: None
             });
         }
+    }
+    return None;
+}
+
+fn rule_applies_zero(jdg: &Judgement,
+                     rule: &dyn DerRule)  -> Option<LineRef> {
+    if rule.validate(None, None, jdg) {
+        return Some(LineRef {
+            rule: rule.name(),
+            line1: None,
+            line2: None
+        });
     }
     return None;
 }

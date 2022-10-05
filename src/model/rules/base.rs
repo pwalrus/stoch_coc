@@ -28,6 +28,14 @@ fn alt_vars(v_type: &CCExpression, context: &[Statement]) -> Vec<String> {
         }).collect();
 }
 
+pub fn abst_alt_equiv(j1: &Judgement, j2: &Judgement) -> bool {
+    let alts = abst_alternatives(j1);
+    for alt in alts {
+        if alt.alpha_equiv(j2) { return true; }
+    }
+    return false;
+}
+
 pub fn abst_alternatives(jdg: &Judgement) -> Vec<Judgement> {
     if let CCExpression::Abs(v, v_type, ret) = &jdg.statement.subject {
         let alts = alt_vars(&v_type, &jdg.context);
@@ -94,5 +102,15 @@ pub trait DerRule {
     fn apply(&self, lhs: Option<&Judgement>, rhs: Option<&Judgement>) -> Option<Judgement>;
     fn name(&self) -> String;
     fn sig_size(&self) -> u32;
+
+    fn validate(&self, lhs: Option<&Judgement>, rhs: Option<&Judgement>,
+                    result: &Judgement) -> bool {
+        if let Some(j) = self.apply(lhs, rhs) {
+            if j.alpha_equiv(result) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
 
