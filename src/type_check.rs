@@ -1,11 +1,25 @@
 
 use crate::model::judgement::{Judgement};
 use crate::model::def::{Definition};
-use crate::parser::{parse_judgement};
 use crate::model::rules::ruleset::{all_rules};
 use crate::model::rules::base::{DerRule, abst_alternatives};
 use crate::model::proof::{LineRef};
 
+
+fn rule_applies_many(jdg: &Judgement,
+                    rule: &dyn DerRule,
+                    lines: &[Judgement]
+                    )  -> Option<LineRef> {
+    println!("applying {} (many) at {}: {}", rule.name(), lines.len(), jdg.to_latex());
+    if let Some(idxs) = rule.validate_many(lines, jdg) {
+        return Some(LineRef {
+            rule: rule.name(),
+            line1: if idxs.len() > 0 { Some(idxs[0] as u32) } else { None },
+            line2: if idxs.len() > 1 { Some(idxs[1] as u32) } else { None }
+        });
+    }
+    return None;
+}
 
 fn rule_applies_two(jdg: &Judgement,
                     rule: &dyn DerRule,
@@ -67,6 +81,8 @@ pub fn check_proof(defs: &[Definition],
                 found = rule_applies_one(jdg, &(**rule), &judges[0..idx]);
             } else if rule.sig_size() == 2 {
                 found = rule_applies_two(jdg, &(**rule), &judges[0..idx]);
+            } else if rule.sig_size() > 2 {
+                found = rule_applies_many(jdg, &(**rule), &judges[0..idx]);
             }
             if let Some(_) = &found {
                 break;
@@ -88,6 +104,7 @@ pub fn check_proof(defs: &[Definition],
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::parser::{parse_judgement, parse_definition};
 
     #[test]
     fn simple_type_check() {
@@ -162,6 +179,37 @@ mod tests {
                        "var 1",
                        "form 1,2",
                        "abst 3,4"
+            ]);
+        } else {
+            panic!();
+        }
+    }
+
+    #[test]
+    fn type_check_inst() {
+        let def = parse_definition(
+            "A : \\ast \\vartriangleright id \\langle A \\rangle := \\lambda x : A . x : \\prod x : A . A"
+            ).unwrap();
+        let lines: Vec<Judgement> = vec![
+            parse_judgement("\\vdash \\ast : \\square").unwrap(),
+            parse_judgement("I : \\ast \\vdash I : \\ast").unwrap(),
+            parse_judgement("I : \\ast, x : I \\vdash I : \\ast").unwrap(),
+            parse_judgement("I : \\ast, x : I \\vdash x : I").unwrap(),
+            parse_judgement("I : \\ast, x : I \\vdash id \\langle I \\rangle : \\prod x : I. I").unwrap(),
+            parse_judgement("I : \\ast, x : I \\vdash id \\langle I \\rangle  x : I").unwrap(),
+        ];
+        let refs = check_proof(&[def], &lines);
+        if let Ok(r) = refs {
+            let r_str: Vec<String> = r.iter().filter_map(|x|
+                                                         Some(x.to_latex())
+                                                         ).collect();
+            assert_eq!(r_str, vec![
+                       "sort",
+                       "var 0",
+                       "weak 1,1",
+                       "var 1",
+                       "inst 1",
+                       "appl 4,3"
             ]);
         } else {
             panic!();

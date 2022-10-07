@@ -445,6 +445,10 @@ fn find_context(tokens: &[String]) -> Option<Vec<Statement>> {
     return None
 }
 
+pub fn parse_definition(expr: &str) -> Option<Definition> {
+    let tokens = tokenize(expr);
+    return find_definition(&tokens);
+}
 
 pub fn parse_statement(expr: &str) -> Option<Statement> {
     let tokens = tokenize(expr);
