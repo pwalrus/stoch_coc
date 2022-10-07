@@ -112,5 +112,9 @@ pub trait DerRule {
         }
         return false;
     }
+
+    fn validate_many(&self, _judges: &[Judgement], _result: &Judgement) -> Option<Vec<u32>> {
+        return None;
+    }
 }
 

@@ -5,18 +5,28 @@ use crate::model::def::{Definition};
 use crate::model::rules::base::{DerRule};
 
 
-fn build_arg_map(def: &Definition, known_args: &Vec<Statement>) -> Option<Vec<Statement>> {
+fn build_arg_map(def: &Definition, known_args: &[(usize, Statement)],
+                 args: &[CCExpression]) -> Option<Vec<(usize, Statement)>> {
     if !def.context.iter().all(
-        |arg| known_args.iter().any(|knwn| arg.s_type == knwn.s_type) ) {
+        |arg| known_args.iter().any(|knwn| arg.s_type == knwn.1.s_type) ) {
         return None;
     }
     let arg_types: Vec<&CCExpression> = def.args.iter().filter_map(
         |arg| Some(&def.context.iter().find(
             |stmt| stmt.subject.var_str() == Some(arg.clone())).unwrap().s_type)
         ).collect();
+    let output: Vec<(usize, Statement)> = arg_types.iter().zip(args).filter_map(
+            |(argt, uarg)| known_args.iter().find(
+                |knwn| knwn.1.s_type == **argt && knwn.1.subject == *uarg)
+            ).map(|x| x.clone()).collect();
+    if args.len() > 0 && output.len() == args.len() {
+        return Some(output);
+    } else if args.len() > 0 {
+        return None;
+    }
     return Some(arg_types.iter().filter_map(
             |argt: &&CCExpression| known_args.iter().find(
-                |knwn| knwn.s_type == **argt)
+                |knwn| knwn.1.s_type == **argt)
             ).map(|x| x.clone()).collect());
 }
 
@@ -33,6 +43,37 @@ fn do_type_sub(s_type: &CCExpression, def: &Definition,
     return output;
 }
 
+fn find_jdg_for_def(def: &Definition, args: &[CCExpression],
+                    judges: &[Judgement], result: &Judgement) -> Option<Vec<u32>> {
+    let usable_stmts: Vec<(usize, Statement)> = judges.iter().enumerate().
+        filter_map(|(idx, jdg)| if result.weaker_eq(jdg) {
+            Some((idx, jdg.statement.clone()))
+        } else {
+            None
+        }).collect();
+    if let Some(known) = build_arg_map(def, &usable_stmts, args) {
+        let arg_names: Vec<CCExpression> = known.iter().map(
+            |arg| arg.1.subject.clone()).collect();
+        println!("found arg_names: {:?}", arg_names);
+        let new_def = CCExpression::Def(def.name.clone(), arg_names);
+        let new_stmt = Statement {
+            subject: new_def,
+            s_type: do_type_sub(&def.body.s_type, &def,
+                                &known.iter().map(
+                                    |x| x.1.clone()).collect())
+        };
+        let new_jdg = Judgement {
+            defs: result.defs.clone(),
+            context: result.context.clone(),
+            statement: new_stmt
+        };
+        if new_jdg.alpha_equiv(result) {
+            return Some(known.iter().map(|(idx, _)| *idx as u32).collect());
+        }
+    }
+    return None;
+}
+
 pub struct InstRule {
     pub defs : Vec<Definition>
 }
@@ -42,16 +83,16 @@ impl DerRule for InstRule {
         if let None = lhs { return None; }
         if let Some(_) = rhs { return None; }
         for def in &self.defs {
-            if let Some(args) = build_arg_map(def, &vec![lhs.unwrap().statement.clone()]) {
+            if let Some(args) = build_arg_map(def, &vec![(0, lhs.unwrap().statement.clone())], &[]) {
                 let arg_names: Vec<CCExpression> = args.iter().map(
-                    |arg| arg.subject.clone()).collect();
+                    |arg| arg.1.subject.clone()).collect();
                 return Some(Judgement {
                     defs: lhs.unwrap().defs.clone(),
                     context: lhs.unwrap().context.clone(),
                     statement: Statement {
                         subject: CCExpression::Def(def.name.clone(),
                         arg_names),
-                        s_type: do_type_sub(&def.body.s_type, &def, &args)
+                        s_type: do_type_sub(&def.body.s_type, &def, &args.iter().map(|x| x.1.clone()).collect())
                     }
                 });
             }
@@ -59,11 +100,25 @@ impl DerRule for InstRule {
         return None;
     }
 
+    fn validate_many(&self, judges: &[Judgement], result: &Judgement) -> Option<Vec<u32>> {
+        if let CCExpression::Def(name, args) = &result.statement.subject {
+            for def in &self.defs {
+                if def.name == *name && def.args.len() == args.len() {
+                    let lines = find_jdg_for_def(def, args, judges, result);
+                    if let Some(_) = lines {
+                        return lines;
+                    }
+                }
+            }
+        }
+        return None
+    }
+
     fn name(&self) -> String {
         return String::from("inst");
     }
 
-    fn sig_size(&self) -> u32 { return 1; }
+    fn sig_size(&self) -> u32 { return 3; }
 }
 
 #[cfg(test)]
@@ -132,5 +187,8 @@ mod tests {
         if let Some(x) = output {
             assert_eq!(&x.to_latex(), "I : \\ast \\vdash id \\langle I \\rangle : \\prod x : I . I");
         }
+
+        let output2 = rule.validate_many(&[jdg], &def_jdg);
+        assert_eq!(output2, Some(vec![0]));
     }
 }

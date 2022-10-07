@@ -35,6 +35,10 @@ impl Judgement {
         if self.statement != rhs.statement {
             return false;
         }
+        return self.weaker_eq(rhs);
+    }
+
+    pub fn weaker_eq(&self, rhs: &Judgement) -> bool {
         return rhs.context.iter().all(|x| self.context.contains(x));
     }
 
