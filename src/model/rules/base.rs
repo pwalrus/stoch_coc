@@ -2,6 +2,7 @@
 use crate::model::expression::CCExpression;
 use crate::model::judgement::{Judgement};
 use crate::model::statement::{Statement};
+use crate::model::def::{Definition};
 
 fn alt_context(old_var: &String, new_var: &String, v_type: &CCExpression,
                context: &[Statement]) -> Vec<Statement> {
@@ -96,6 +97,19 @@ pub fn next_unused_type(context: &[Statement]) -> String {
         }
     }
     return String::from("x");
+}
+
+pub fn do_type_sub(s_type: &CCExpression, def: &Definition,
+               arg_map: &Vec<Statement>) -> CCExpression {
+    let replacements: Vec<(&String, &CCExpression)> = def.args.iter()
+        .zip(arg_map.iter().map(|x| &x.subject)).collect();
+    let mut output: CCExpression = s_type.clone();
+
+    for (tok, rep) in replacements {
+        output = output.substitute(tok, rep);
+    }
+
+    return output;
 }
 
 pub trait DerRule {

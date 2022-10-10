@@ -10,7 +10,6 @@ fn rule_applies_many(jdg: &Judgement,
                     rule: &dyn DerRule,
                     lines: &[Judgement]
                     )  -> Option<LineRef> {
-    println!("applying {} (many) at {}: {}", rule.name(), lines.len(), jdg.to_latex());
     if let Some(idxs) = rule.validate_many(lines, jdg) {
         return Some(LineRef {
             rule: rule.name(),

@@ -1,5 +1,6 @@
 
 use super::statement::{Statement};
+use super::expression::{CCExpression};
 
 #[derive(PartialEq,Debug,Clone)]
 pub struct Definition {
@@ -21,6 +22,18 @@ impl Definition {
         args_str,
         self.body.to_latex()
         );
+    }
+
+    pub fn type_list(&self) -> Option<Vec<CCExpression>> {
+        let output: Vec<CCExpression> = self.args.iter().filter_map(
+            |x| self.context.iter().find(
+                |stmt| stmt.subject.var_str() == Some(x.to_string()))
+            ).map(|x| x.s_type.clone()).collect();
+        if output.len() == self.args.len() {
+            return Some(output);
+        } else {
+            return None;
+        }
     }
 }
 

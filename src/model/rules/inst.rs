@@ -2,7 +2,7 @@ use crate::model::expression::CCExpression;
 use crate::model::judgement::{Judgement};
 use crate::model::statement::{Statement};
 use crate::model::def::{Definition};
-use crate::model::rules::base::{DerRule};
+use crate::model::rules::base::{DerRule, do_type_sub};
 
 
 fn build_arg_map(def: &Definition, known_args: &[(usize, Statement)],
@@ -11,13 +11,10 @@ fn build_arg_map(def: &Definition, known_args: &[(usize, Statement)],
         |arg| known_args.iter().any(|knwn| arg.s_type == knwn.1.s_type) ) {
         return None;
     }
-    let arg_types: Vec<&CCExpression> = def.args.iter().filter_map(
-        |arg| Some(&def.context.iter().find(
-            |stmt| stmt.subject.var_str() == Some(arg.clone())).unwrap().s_type)
-        ).collect();
+    let arg_types: Vec<CCExpression> = def.type_list().unwrap();
     let output: Vec<(usize, Statement)> = arg_types.iter().zip(args).filter_map(
             |(argt, uarg)| known_args.iter().find(
-                |knwn| knwn.1.s_type == **argt && knwn.1.subject == *uarg)
+                |knwn| knwn.1.s_type == *argt && knwn.1.subject == *uarg)
             ).map(|x| x.clone()).collect();
     if args.len() > 0 && output.len() == args.len() {
         return Some(output);
@@ -25,22 +22,9 @@ fn build_arg_map(def: &Definition, known_args: &[(usize, Statement)],
         return None;
     }
     return Some(arg_types.iter().filter_map(
-            |argt: &&CCExpression| known_args.iter().find(
-                |knwn| knwn.1.s_type == **argt)
+            |argt: &CCExpression| known_args.iter().find(
+                |knwn| knwn.1.s_type == *argt)
             ).map(|x| x.clone()).collect());
-}
-
-fn do_type_sub(s_type: &CCExpression, def: &Definition,
-               arg_map: &Vec<Statement>) -> CCExpression {
-    let replacements: Vec<(&String, &CCExpression)> = def.args.iter()
-        .zip(arg_map.iter().map(|x| &x.subject)).collect();
-    let mut output: CCExpression = s_type.clone();
-
-    for (tok, rep) in replacements {
-        output = output.substitute(tok, rep);
-    }
-
-    return output;
 }
 
 fn find_jdg_for_def(def: &Definition, args: &[CCExpression],
@@ -54,7 +38,6 @@ fn find_jdg_for_def(def: &Definition, args: &[CCExpression],
     if let Some(known) = build_arg_map(def, &usable_stmts, args) {
         let arg_names: Vec<CCExpression> = known.iter().map(
             |arg| arg.1.subject.clone()).collect();
-        println!("found arg_names: {:?}", arg_names);
         let new_def = CCExpression::Def(def.name.clone(), arg_names);
         let new_stmt = Statement {
             subject: new_def,
