@@ -1,7 +1,7 @@
 
 use super::expression::{CCExpression};
 
-#[derive(PartialEq,Debug,Clone)]
+#[derive(PartialEq,Eq,Debug,Clone)]
 pub struct Statement {
     pub subject: CCExpression,
     pub s_type: CCExpression

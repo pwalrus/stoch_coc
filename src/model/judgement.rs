@@ -22,7 +22,7 @@ fn context_map(lhs: &[Statement], rhs: &[Statement]) -> Option<HashMap<String, S
     return Some(output);
 }
 
-#[derive(PartialEq,Debug,Clone)]
+#[derive(PartialEq,Eq,Debug,Clone)]
 pub struct Judgement {
     pub defs: Vec<Definition>,
     pub context: Vec<Statement>,

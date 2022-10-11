@@ -1,10 +1,36 @@
-
+use std::ops;
+use std::hash::{Hash, Hasher};
 use super::statement::{Statement};
 use super::judgement::{Judgement};
 use super::expression::{CCExpression};
 
-#[derive(Clone)]
-enum Goal {
+#[derive(Debug,PartialEq,Eq)]
+pub struct GoalCount {
+    pub i: u32,
+    pub u: u32,
+    pub f: u32,
+}
+
+impl ops::Add<GoalCount> for GoalCount {
+    type Output = GoalCount;
+
+    fn add(self, rhs: GoalCount) -> GoalCount {
+        GoalCount {
+            i: self.i + rhs.i,
+            u: self.u + rhs.u,
+            f: self.f + rhs.f
+        }
+    }
+}
+
+impl GoalCount {
+    pub fn blank() -> GoalCount {
+        GoalCount {i: 0, u: 0, f: 0}
+    }
+}
+
+#[derive(PartialEq,Eq,Clone)]
+pub enum Goal {
     Initial(CCExpression),
     Unpacked(CCExpression, Vec<Goal>),
     Final(Vec<Judgement>)
@@ -25,11 +51,28 @@ impl Goal {
             }
         }
     }
+
+    pub fn count(&self) -> GoalCount {
+        match self {
+            Goal::Initial(_) => GoalCount {i: 1, u: 0, f:0},
+            Goal::Unpacked(_, lst) => {
+                GoalCount {i: 0, u: 1, f:0} +
+                    lst.iter().map(
+                        |x| x.count()
+                        ).fold(
+                            GoalCount::blank(),
+                            |a, b| a + b
+                            )
+            },
+            Goal::Final(_) => GoalCount {i: 0, u: 0, f:1},
+        }
+    }
 }
 
-struct PartialSol {
-    context: Vec<Statement>,
-    goals: Vec<Goal>
+#[derive(PartialEq,Eq)]
+pub struct PartialSol {
+    pub context: Vec<Statement>,
+    pub goals: Vec<Goal>
 }
 
 impl PartialSol {
@@ -38,8 +81,22 @@ impl PartialSol {
         let g_str: String = self.goals.iter().map(|x| x.to_latex()).collect::<Vec<String>>().join("\n");
         return c_str + "\n" + &g_str;
     }
+
+    pub fn count(&self) -> GoalCount {
+        return self.goals.iter().map(
+            |x| x.count()
+            ).fold(
+                GoalCount::blank(),
+                |a, b| a + b
+                );
+    }
 }
 
+impl Hash for PartialSol {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.goals.last().unwrap().to_latex().hash(state);
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -61,6 +118,7 @@ mod tests {
             goals: vec![g1]
         };
         assert_eq!(partial.to_latex(), "A : \\ast\n?? : \\prod x : A . A");
+        assert_eq!(partial.count(), GoalCount {i: 1, u: 0, f:0});
     }
 
     #[test]
@@ -86,6 +144,7 @@ mod tests {
             goals: vec![g2]
         };
         assert_eq!(partial.to_latex(), "A : \\ast\n?? : A\n?? : \\prod x : A . A");
+        assert_eq!(partial.count(), GoalCount {i: 1, u: 1, f:0});
     }
 
     #[test]
@@ -119,6 +178,7 @@ mod tests {
             goals: vec![g1]
         };
         assert_eq!(partial.to_latex(), "A : \\ast\nA : \\ast \\vdash \\lambda x : A . x : \\prod x : A . A");
+        assert_eq!(partial.count(), GoalCount {i: 0, u: 0, f:1});
     }
 }
 

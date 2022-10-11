@@ -2,7 +2,7 @@
 use super::statement::{Statement};
 use super::expression::{CCExpression};
 
-#[derive(PartialEq,Debug,Clone)]
+#[derive(PartialEq,Eq,Debug,Clone)]
 pub struct Definition {
     pub context: Vec<Statement>,
     pub name: String,
