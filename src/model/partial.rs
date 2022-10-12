@@ -31,7 +31,7 @@ impl GoalCount {
 
 #[derive(PartialEq,Eq,Clone)]
 pub enum Goal {
-    Initial(CCExpression),
+    Initial(CCExpression, Vec<Statement>),
     Unpacked(CCExpression, Vec<Goal>),
     Final(Vec<Judgement>)
 }
@@ -39,7 +39,7 @@ pub enum Goal {
 impl Goal {
     pub fn to_latex(&self) -> String {
         match self {
-            Goal::Initial(ex) => format!("?? : {}", ex.to_latex()),
+            Goal::Initial(ex, _) => format!("?? : {}", ex.to_latex()),
             Goal::Unpacked(ex, lst) => {
                 lst.iter().map(|x| x.to_latex()
                                ).collect::<Vec<String>>().join("\n") + 
@@ -54,7 +54,7 @@ impl Goal {
 
     pub fn count(&self) -> GoalCount {
         match self {
-            Goal::Initial(_) => GoalCount {i: 1, u: 0, f:0},
+            Goal::Initial(_, _) => GoalCount {i: 1, u: 0, f:0},
             Goal::Unpacked(_, lst) => {
                 GoalCount {i: 0, u: 1, f:0} +
                     lst.iter().map(
@@ -135,7 +135,8 @@ mod tests {
         };
         let g1 = Goal::Initial(CCExpression::TypeAbs("x".to_string(),
                                                      Box::new(t1.clone()),
-                                                     Box::new(t1.clone())));
+                                                     Box::new(t1.clone())),
+                                                     vec![]);
         assert_eq!(g1.to_latex(), "?? : \\prod x : A . A");
         let partial = PartialSol{
             context: vec![stmt1],
@@ -157,11 +158,11 @@ mod tests {
             subject: t1.clone() 
         };
 
-        let g1 = Goal::Initial(t2.clone());
+        let g1 = Goal::Initial(t2.clone(), vec![]);
         let g2 = Goal::Unpacked(t2.clone(), vec![
-                                Goal::Initial(t1.clone())
+                                Goal::Initial(t1.clone(), vec![])
         ]);
-        let g3 = g2.replace(&Goal::Initial(t1.clone()), &Goal::Initial(t2.clone()));
+        let g3 = g2.replace(&Goal::Initial(t1.clone(), vec![]), &Goal::Initial(t2.clone(), vec![]));
         assert_eq!(g1.to_latex(), "?? : \\prod x : A . A");
         assert_eq!(g2.to_latex(), "?? : A\n?? : \\prod x : A . A");
         assert_eq!(g3.to_latex(), "?? : \\prod x : A . A\n?? : \\prod x : A . A");
@@ -169,7 +170,7 @@ mod tests {
             context: vec![stmt1],
             goals: vec![g2]
         };
-        let partial2 = partial.replace(&Goal::Initial(t1.clone()), &Goal::Initial(t2.clone()));
+        let partial2 = partial.replace(&Goal::Initial(t1.clone(), vec![]), &Goal::Initial(t2.clone(), vec![]));
         assert_eq!(partial.to_latex(), "A : \\ast\n?? : A\n?? : \\prod x : A . A");
         assert_eq!(partial2.to_latex(), "A : \\ast\n?? : \\prod x : A . A\n?? : \\prod x : A . A");
         assert_eq!(partial.count(), GoalCount {i: 1, u: 1, f:0});
