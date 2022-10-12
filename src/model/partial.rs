@@ -67,6 +67,20 @@ impl Goal {
             Goal::Final(_) => GoalCount {i: 0, u: 0, f:1},
         }
     }
+
+    pub fn replace(&self, old_g: &Goal, new_g: &Goal) -> Goal {
+        match self {
+            Goal::Unpacked(ex, lst) => {
+                Goal::Unpacked(ex.clone(),
+                lst.iter().map(
+                    |x| if x == old_g { new_g.clone() }
+                    else { x.replace(old_g, new_g) }
+                    ).collect()
+                )
+            },
+            _ => self.clone()
+        }
+    }
 }
 
 #[derive(PartialEq,Eq)]
@@ -89,6 +103,16 @@ impl PartialSol {
                 GoalCount::blank(),
                 |a, b| a + b
                 );
+    }
+
+    pub fn replace(&self, old_g: &Goal, new_g: &Goal) -> PartialSol {
+        PartialSol {
+            context: self.context.clone(),
+            goals: self.goals.iter().map(
+                |x| if x == old_g { new_g.clone() }
+                else { x.replace(old_g, new_g) }
+                ).collect()
+        }
     }
 }
 
@@ -137,14 +161,19 @@ mod tests {
         let g2 = Goal::Unpacked(t2.clone(), vec![
                                 Goal::Initial(t1.clone())
         ]);
+        let g3 = g2.replace(&Goal::Initial(t1.clone()), &Goal::Initial(t2.clone()));
         assert_eq!(g1.to_latex(), "?? : \\prod x : A . A");
         assert_eq!(g2.to_latex(), "?? : A\n?? : \\prod x : A . A");
+        assert_eq!(g3.to_latex(), "?? : \\prod x : A . A\n?? : \\prod x : A . A");
         let partial = PartialSol{
             context: vec![stmt1],
             goals: vec![g2]
         };
+        let partial2 = partial.replace(&Goal::Initial(t1.clone()), &Goal::Initial(t2.clone()));
         assert_eq!(partial.to_latex(), "A : \\ast\n?? : A\n?? : \\prod x : A . A");
+        assert_eq!(partial2.to_latex(), "A : \\ast\n?? : \\prod x : A . A\n?? : \\prod x : A . A");
         assert_eq!(partial.count(), GoalCount {i: 1, u: 1, f:0});
+        assert_eq!(partial2.count(), GoalCount {i: 1, u: 1, f:0});
     }
 
     #[test]
