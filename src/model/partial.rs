@@ -29,6 +29,7 @@ impl GoalCount {
     }
 }
 
+
 #[derive(PartialEq,Eq,Clone)]
 pub enum Goal {
     Initial(CCExpression, Vec<Statement>),
@@ -81,6 +82,16 @@ impl Goal {
             _ => self.clone()
         }
     }
+
+    pub fn active(&self) -> Vec<&Goal> {
+        match self {
+            Goal::Initial(_, _) => vec![self],
+            Goal::Unpacked(_, lst) => {
+                lst.iter().map(|x| x.active()).flatten().collect()
+            },
+            _ => vec![]
+        }
+    }
 }
 
 #[derive(PartialEq,Eq)]
@@ -113,6 +124,12 @@ impl PartialSol {
                 else { x.replace(old_g, new_g) }
                 ).collect()
         }
+    }
+
+    pub fn active(&self) -> Vec<&Goal> {
+        return self.goals.iter().map(
+            |g| g.active()
+            ).flatten().collect();
     }
 }
 
@@ -175,6 +192,9 @@ mod tests {
         assert_eq!(partial2.to_latex(), "A : \\ast\n?? : \\prod x : A . A\n?? : \\prod x : A . A");
         assert_eq!(partial.count(), GoalCount {i: 1, u: 1, f:0});
         assert_eq!(partial2.count(), GoalCount {i: 1, u: 1, f:0});
+        let act = partial.active();
+        assert_eq!(act.len(), 1);
+        assert_eq!(act.last().unwrap().to_latex(), "?? : A");
     }
 
     #[test]
