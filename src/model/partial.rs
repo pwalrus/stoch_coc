@@ -30,7 +30,7 @@ impl GoalCount {
 }
 
 
-#[derive(PartialEq,Eq,Clone)]
+#[derive(Debug,PartialEq,Eq,Clone)]
 pub enum Goal {
     Initial(CCExpression, Vec<Statement>),
     Unpacked(CCExpression, Vec<Goal>),

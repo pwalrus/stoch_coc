@@ -31,10 +31,10 @@ fn j_table_latex(jdg: &Judgement) -> String {
     return format!("${}$ & $\\vdash$ & ${}$", ctx, stmt);
 }
 
-
+#[derive(Debug,PartialEq)]
 pub struct Proof {
-    lines: Vec<Judgement>,
-    refs: Vec<LineRef>
+    pub lines: Vec<Judgement>,
+    pub refs: Vec<LineRef>
 }
 
 impl Proof {
