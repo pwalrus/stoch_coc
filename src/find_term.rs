@@ -1,12 +1,12 @@
 
 use priority_queue::PriorityQueue;
 
-use crate::model::judgement::{Judgement};
 use crate::model::statement::{Statement};
 use crate::model::expression::{CCExpression};
 use crate::model::def::{Definition};
 use crate::model::proof::{Proof};
 use crate::model::partial::{Goal, PartialSol};
+use crate::unpack_term::{unpack_term};
 use crate::type_check::{check_proof};
 
 
@@ -21,12 +21,8 @@ fn sub_goals_from_var(name: &String,
             None
         }
         ).map(|stmt| {
-        let jdg = Judgement {
-            defs: defs.to_vec(),
-            context: [context, inner_context].concat(),
-            statement: stmt
-        };
-        vec![Goal::Final(vec![jdg])]
+        let jdgs = unpack_term(&stmt.subject, &[context, inner_context].concat(), defs);
+        vec![Goal::Final(jdgs)]
     }).collect();
 
     if output.len() > 0 {
@@ -83,7 +79,7 @@ fn next_sol_from_sol(partial: &PartialSol,
 }
 
 fn final_goal_from_var(name: &String, subs: &[Goal],
-                       defs: &[Definition]) -> Result<Goal, String> {
+                       _: &[Definition]) -> Result<Goal, String> {
     let term = subs.iter().find(
         |g| if let Goal::Final(jdgs) = g {
             jdgs.len() > 0 && jdgs.last().unwrap().statement.s_type.var_str() == Some(name.to_string())
@@ -174,14 +170,11 @@ pub fn find_term(s_type: &CCExpression, context: &[Statement], defs: &[Definitio
         Ok(out_partial) => {
             let lines_o = out_partial.goals.last().unwrap();
             if let Goal::Final(lines) = lines_o {
-                Ok(Proof {lines: lines.clone(), refs: vec![]})
-                /*
                 let refs_o = check_proof(&[], lines);
                 match refs_o {
                     Ok(refs) => Ok(Proof { lines: lines.clone(), refs: refs }),
                     Err(x) => Err(x)
                 }
-                */
             } else {
                 Err(format!("returned goal not final: {:?}", lines_o))
             }
@@ -206,6 +199,11 @@ mod tests {
 
         if let Ok(x) = term {
             assert_eq!(x.lines.last().unwrap().to_latex(), jdg.to_latex());
+            let str_lines: Vec<String> = x.lines.iter().map(|x| x.to_latex()).collect();
+            assert_eq!(str_lines,
+                       ["\\vdash \\ast : \\square",
+                       "A : \\ast \\vdash A : \\ast",
+                       "A : \\ast, x : A \\vdash x : A"]);
         } else {
             println!("term not found: {:?}", term);
             panic!();
