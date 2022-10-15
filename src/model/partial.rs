@@ -94,7 +94,7 @@ impl Goal {
     }
 }
 
-#[derive(PartialEq,Eq)]
+#[derive(Clone,PartialEq,Eq)]
 pub struct PartialSol {
     pub context: Vec<Statement>,
     pub goals: Vec<Goal>

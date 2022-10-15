@@ -1,6 +1,7 @@
 
 use priority_queue::PriorityQueue;
 
+use crate::model::judgement::{Judgement};
 use crate::model::statement::{Statement};
 use crate::model::expression::{CCExpression};
 use crate::model::def::{Definition};
@@ -32,12 +33,29 @@ fn sub_goals_from_var(name: &String,
     }
 }
 
+fn sub_goals_from_type_abst(var: &String,
+                            a_type: &CCExpression,
+                            ret: &CCExpression,
+                            inner_context: &[Statement]) -> Result<Vec<Vec<Goal>>, String> {
+    let new_stmt = Statement {
+        subject: CCExpression::Var(var.to_string()),
+        s_type: a_type.clone()
+    };
+    let subs = vec![
+        Goal::Initial(
+            ret.clone(),
+            [inner_context, &[new_stmt]].concat())
+    ];
+    Ok(vec![subs])
+}
+
 fn sub_goals_from_expression(ex: &CCExpression,
                              context: &[Statement],
                              inner_context: &[Statement],
                              defs: &[Definition]) -> Result<Vec<Vec<Goal>>, String> {
         match ex {
             CCExpression::Var(x) => { sub_goals_from_var(&x, context, inner_context, defs) },
+            CCExpression::TypeAbs(x, a_type, ret) => { sub_goals_from_type_abst(&x, &a_type, &ret, inner_context) },
             _ => Err(format!("Can not determine subgoals for: {}", ex.to_latex()))
         }
 }
@@ -86,7 +104,54 @@ fn final_goal_from_var(name: &String, subs: &[Goal],
         } else { false });
     match term {
         Some(g) => Ok(g.clone()),
-        None => Err(format!("No subgoal matches {}", name))
+        None => Err(format!("var: No subgoal matches {}", name))
+    }
+}
+
+fn final_goal_from_type_abs(name: &String,
+                            a_type: &CCExpression,
+                            ret: &CCExpression,
+                            subs: &[Goal],
+                            _: &[Definition]) -> Result<Goal, String> {
+    let lines = subs.iter().find_map(
+        |g| if let Goal::Final(jdgs) = g {
+            if jdgs.len() > 0 && jdgs.last().unwrap().statement.s_type == *ret{
+                Some(jdgs)
+            } else { None }
+        } else { None });
+
+    match lines {
+        Some(jdgs) => {
+            let last = jdgs.last().unwrap();
+            let stmt1 = Statement {
+                subject: CCExpression::Abs( name.to_string(), Box::new(a_type.clone()), Box::new(last.statement.subject.clone())),
+                s_type: CCExpression::TypeAbs( name.to_string(), Box::new(a_type.clone()), Box::new(ret.clone()))
+            };
+            let stmt2 = Statement {
+                subject: stmt1.s_type.clone(),
+                s_type: CCExpression::Star
+            };
+            let stmt3 = Statement {
+                subject: ret.clone(),
+                s_type: CCExpression::Star
+            };
+            let output = Goal::Final(
+                [jdgs.clone(), vec![Judgement{
+                    defs: last.defs.clone(),
+                    context: last.context.to_vec(),
+                    statement: stmt3
+                }, Judgement{
+                    defs: last.defs.clone(),
+                    context: last.context[..last.context.len() - 1].to_vec(),
+                    statement: stmt2
+                }, Judgement{
+                    defs: last.defs.clone(),
+                    context: last.context[..last.context.len() - 1].to_vec(),
+                    statement: stmt1
+                }]].concat());
+            Ok(output)
+        },
+        None => Err(format!("type_abs: No subgoal matches {}", ret.to_latex()))
     }
 }
 
@@ -94,6 +159,7 @@ fn final_goal_from_subs(ex: &CCExpression, subs: &[Goal],
                         defs: &[Definition]) -> Result<Goal, String> {
     match ex {
         CCExpression::Var(x) => final_goal_from_var(x, subs, defs),
+        CCExpression::TypeAbs(x, a_type, ret) => final_goal_from_type_abs(x, &a_type, &ret, subs, defs),
         _ => Err(format!("failed to find final for {}", ex.to_latex()))
     }
 
@@ -151,6 +217,10 @@ fn do_search(partial: &PartialSol,
                     Ok(x) => return Ok(x),
                     Err(x) => return Err(x)
                 }
+            } else {
+                for partial2 in lst {
+                    queue.push(partial2.clone(), 1);
+                }
             }
         }
     }
@@ -173,7 +243,9 @@ pub fn find_term(s_type: &CCExpression, context: &[Statement], defs: &[Definitio
                 let refs_o = check_proof(&[], lines);
                 match refs_o {
                     Ok(refs) => Ok(Proof { lines: lines.clone(), refs: refs }),
-                    Err(x) => Err(x)
+                    Err(x) => {
+                        Err(x)
+                    }
                 }
             } else {
                 Err(format!("returned goal not final: {:?}", lines_o))
@@ -204,6 +276,30 @@ mod tests {
                        ["\\vdash \\ast : \\square",
                        "A : \\ast \\vdash A : \\ast",
                        "A : \\ast, x : A \\vdash x : A"]);
+        } else {
+            println!("term not found: {:?}", term);
+            panic!();
+        }
+    }
+
+    #[test]
+    fn find_on_easy_tautology() {
+        let jdg = parse_judgement("A : \\ast \\vdash \\lambda a : A . a : A \\to A").unwrap();
+        let t1 = jdg.statement.s_type.clone();
+        let stmt1 = jdg.context[0].clone();
+        let term = find_term(&t1, &[stmt1], &[]);
+
+        if let Ok(x) = term {
+            assert_eq!(x.lines.last().unwrap().to_latex(), jdg.to_latex());
+            let str_lines: Vec<String> = x.lines.iter().map(|x| x.to_latex()).collect();
+            assert_eq!(str_lines,
+                       ["\\vdash \\ast : \\square",
+                        "A : \\ast \\vdash A : \\ast",
+                        "A : \\ast, a : A \\vdash a : A",
+                        "A : \\ast, a : A \\vdash A : \\ast",
+                        "A : \\ast \\vdash \\prod a : A . A : \\ast",
+                        "A : \\ast \\vdash \\lambda a : A . a : \\prod a : A . A"
+                       ]);
         } else {
             println!("term not found: {:?}", term);
             panic!();
