@@ -154,12 +154,12 @@ mod tests {
                                                      Box::new(t1.clone()),
                                                      Box::new(t1.clone())),
                                                      vec![]);
-        assert_eq!(g1.to_latex(), "?? : \\prod x : A . A");
+        assert_eq!(g1.to_latex(), "?? : A \\to A");
         let partial = PartialSol{
             context: vec![stmt1],
             goals: vec![g1]
         };
-        assert_eq!(partial.to_latex(), "A : \\ast\n?? : \\prod x : A . A");
+        assert_eq!(partial.to_latex(), "A : \\ast\n?? : A \\to A");
         assert_eq!(partial.count(), GoalCount {i: 1, u: 0, f:0});
     }
 
@@ -180,16 +180,16 @@ mod tests {
                                 Goal::Initial(t1.clone(), vec![])
         ]);
         let g3 = g2.replace(&Goal::Initial(t1.clone(), vec![]), &Goal::Initial(t2.clone(), vec![]));
-        assert_eq!(g1.to_latex(), "?? : \\prod x : A . A");
-        assert_eq!(g2.to_latex(), "?? : A\n?? : \\prod x : A . A");
-        assert_eq!(g3.to_latex(), "?? : \\prod x : A . A\n?? : \\prod x : A . A");
+        assert_eq!(g1.to_latex(), "?? : A \\to A");
+        assert_eq!(g2.to_latex(), "?? : A\n?? : A \\to A");
+        assert_eq!(g3.to_latex(), "?? : A \\to A\n?? : A \\to A");
         let partial = PartialSol{
             context: vec![stmt1],
             goals: vec![g2]
         };
         let partial2 = partial.replace(&Goal::Initial(t1.clone(), vec![]), &Goal::Initial(t2.clone(), vec![]));
-        assert_eq!(partial.to_latex(), "A : \\ast\n?? : A\n?? : \\prod x : A . A");
-        assert_eq!(partial2.to_latex(), "A : \\ast\n?? : \\prod x : A . A\n?? : \\prod x : A . A");
+        assert_eq!(partial.to_latex(), "A : \\ast\n?? : A\n?? : A \\to A");
+        assert_eq!(partial2.to_latex(), "A : \\ast\n?? : A \\to A\n?? : A \\to A");
         assert_eq!(partial.count(), GoalCount {i: 1, u: 1, f:0});
         assert_eq!(partial2.count(), GoalCount {i: 1, u: 1, f:0});
         let act = partial.active();
@@ -222,12 +222,12 @@ mod tests {
         };
 
         let g1 = Goal::Final(vec![jdg]);
-        assert_eq!(g1.to_latex(), "A : \\ast \\vdash \\lambda x : A . x : \\prod x : A . A");
+        assert_eq!(g1.to_latex(), "A : \\ast \\vdash \\lambda x : A . x : A \\to A");
         let partial = PartialSol{
             context: vec![stmt1],
             goals: vec![g1]
         };
-        assert_eq!(partial.to_latex(), "A : \\ast\nA : \\ast \\vdash \\lambda x : A . x : \\prod x : A . A");
+        assert_eq!(partial.to_latex(), "A : \\ast\nA : \\ast \\vdash \\lambda x : A . x : A \\to A");
         assert_eq!(partial.count(), GoalCount {i: 0, u: 0, f:1});
     }
 }

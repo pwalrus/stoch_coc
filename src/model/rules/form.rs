@@ -94,7 +94,7 @@ mod tests {
         assert_eq!(rule.name(), "form");
         assert!(matches!(output, Some(Judgement { .. })));
         if let Some(judge) = output {
-            assert_eq!(judge.to_latex(), "\\vdash \\prod x : A . B : \\ast");
+            assert_eq!(judge.to_latex(), "\\vdash A \\to B : \\ast");
         } else {
             panic!();
         }

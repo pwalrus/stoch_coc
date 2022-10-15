@@ -81,7 +81,7 @@ mod tests {
             statement: stmt3,
             context: vec![]
         };
-        assert_eq!(&jdg1.to_latex(), "\\vdash M : \\prod x : A . B");
+        assert_eq!(&jdg1.to_latex(), "\\vdash M : A \\to B");
         assert_eq!(&jdg2.to_latex(), "\\vdash N : A");
         let output = rule.apply(Some(&jdg1), Some(&jdg2));
         assert_eq!(rule.name(), "appl");

@@ -598,7 +598,7 @@ mod tests {
         let tree = parse(&String::from("\\prod x:A.B "));
         assert_ne!(tree, None);
         if let Some(x) = tree {
-            assert_eq!(x.to_latex(), String::from("\\prod x : A . B"));
+            assert_eq!(x.to_latex(), "A \\to B");
             assert!(matches!(x, CCExpression::TypeAbs {..}));
         }
     }
@@ -608,7 +608,7 @@ mod tests {
         let tree = parse_statement(&String::from("\\lambda q: A. r : \\prod x:A.B "));
         assert_ne!(tree, None);
         if let Some(x) = tree {
-            assert_eq!(x.to_latex(), String::from("\\lambda q : A . r : \\prod x : A . B"));
+            assert_eq!(x.to_latex(), String::from("\\lambda q : A . r : A \\to B"));
             assert!(matches!(x, Statement {..}));
         }
     }
@@ -672,7 +672,21 @@ mod tests {
         let tree = parse(&expr);
         assert_ne!(tree, None);
         if let Some(x) = tree {
-            assert_eq!(x.to_latex(), "\\prod b : A . B a");
+            assert_eq!(x.to_latex(), "A \\to B a");
+        }
+    }
+
+    #[test]
+    fn arrow_bracket_conventions() {
+        let samples = [
+            "A \\to B",
+            "A \\to B \\to C",
+            "(A \\to B) \\to C",
+            "A \\to B \\to C \\to D",
+            "A \\to (B \\to C) \\to D"
+        ];
+        for s in samples {
+            assert_eq!(parse(&s).unwrap().to_latex(), s);
         }
     }
 }

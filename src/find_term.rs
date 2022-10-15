@@ -297,8 +297,8 @@ mod tests {
                         "A : \\ast \\vdash A : \\ast",
                         "A : \\ast, a : A \\vdash a : A",
                         "A : \\ast, a : A \\vdash A : \\ast",
-                        "A : \\ast \\vdash \\prod a : A . A : \\ast",
-                        "A : \\ast \\vdash \\lambda a : A . a : \\prod a : A . A"
+                        "A : \\ast \\vdash A \\to A : \\ast",
+                        "A : \\ast \\vdash \\lambda a : A . a : A \\to A"
                        ]);
         } else {
             println!("term not found: {:?}", term);

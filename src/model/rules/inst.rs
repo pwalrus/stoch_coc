@@ -160,15 +160,15 @@ mod tests {
             statement: def_stmt
         };
         assert_eq!(jdg.to_latex(), "I : \\ast \\vdash I : \\ast");
-        assert_eq!(def.to_latex(), "A : \\ast \\vartriangleright id \\langle A \\rangle := \\lambda x : A . x : \\prod x : A . A");
-        assert_eq!(def_jdg.to_latex(), "I : \\ast \\vdash id \\langle I \\rangle : \\prod x : I . I");
+        assert_eq!(def.to_latex(), "A : \\ast \\vartriangleright id \\langle A \\rangle := \\lambda x : A . x : A \\to A");
+        assert_eq!(def_jdg.to_latex(), "I : \\ast \\vdash id \\langle I \\rangle : I \\to I");
 
         let output = rule.apply(Some(&jdg), None);
         assert_eq!(rule.name(), "inst");
         assert_ne!(output, None);
         assert!(matches!(output, Some(Judgement { .. })));
         if let Some(x) = output {
-            assert_eq!(&x.to_latex(), "I : \\ast \\vdash id \\langle I \\rangle : \\prod x : I . I");
+            assert_eq!(&x.to_latex(), "I : \\ast \\vdash id \\langle I \\rangle : I \\to I");
         }
 
         let output2 = rule.validate_many(&[jdg], &def_jdg);

@@ -224,7 +224,7 @@ mod tests {
 
         assert_eq!(alts.len(), 1);
         assert_eq!(alts[0].to_latex(),
-            "A : \\ast, x : A \\vdash \\lambda b : A . x : \\prod x : A . A"
+            "A : \\ast, x : A \\vdash \\lambda b : A . x : A \\to A"
         );
 
     }

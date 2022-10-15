@@ -12,6 +12,21 @@ pub enum CCExpression {
 }
 
 
+fn type_abs_to_latex(ex: &CCExpression, arg: &String, t: &CCExpression,
+                     ret: &CCExpression) -> String {
+    if let Some((t1, ret1)) = ex.is_arrow() {
+        let lhs = match t1 {
+            CCExpression::Var(_) => t1.to_latex(),
+            _ => format!("({})", t1.to_latex())
+        };
+        lhs + " \\to " + &ret1.to_latex()
+    } else {
+        String::from("\\prod ") + arg + " : " + &t.to_latex()
+        + " . " + &ret.to_latex()
+    }
+}
+
+
 impl CCExpression {
 
     pub fn to_latex(&self) -> String {
@@ -44,11 +59,19 @@ impl CCExpression {
                 String::from("\\lambda ") + arg + " : " + &t.to_latex()
                 + " . " + &ret.to_latex()
             }
-            CCExpression::TypeAbs(arg, t, ret) => {
-                String::from("\\prod ") + arg + " : " + &t.to_latex()
-                + " . " + &ret.to_latex()
-            }
+            CCExpression::TypeAbs(arg, t, ret) => type_abs_to_latex(self, &arg, &t, &ret)
         }
+    }
+
+    pub fn is_arrow(&self) -> Option<(&CCExpression, &CCExpression)> {
+        match self {
+            CCExpression::TypeAbs(arg, t, ret) => {
+                if ret.free_var().contains(arg) { None }
+                else { Some((&t, &ret)) }
+            }
+            _ => None
+        }
+
     }
 
     pub fn var_str(&self) -> Option<String> {
@@ -90,10 +113,15 @@ impl CCExpression {
             CCExpression::Application(left, right) => {
                 [left.free_var(), right.free_var()].concat()
             }
-            CCExpression::Abs(arg, _, ret) => {
-                ret.free_var().into_iter().filter(
-                    |x| x != arg
-                    ).collect()
+            CCExpression::Abs(arg, t, ret) => {
+                ret.free_var().iter().chain(&t.free_var()).filter(
+                    |x| *x != arg
+                    ).map(|x| x.to_string()).collect()
+            },
+            CCExpression::TypeAbs(arg, t, ret) => {
+                ret.free_var().iter().chain(&t.free_var()).filter(
+                    |x| *x != arg
+                    ).map(|x| x.to_string()).collect()
             }
             _other => vec![],
         }
@@ -128,25 +156,25 @@ impl CCExpression {
             CCExpression::Abs(x, a_type, ret) => {
                 if x == token { CCExpression::Abs(
                         String::from(x),
-                        a_type.clone(), 
+                        a_type.clone(),
                         ret.clone()) }
                 else { CCExpression::Abs(
-                        String::from(x), 
+                        String::from(x),
                         Box::new(a_type.substitute(token, expr)),
                         Box::new(ret.substitute(token, expr))
                         ) }
             },
             CCExpression::TypeAbs(x, a_type, ret) => {
                 if x == token { CCExpression::TypeAbs(
-                        String::from(x), 
+                        String::from(x),
                         a_type.clone(),
                         ret.clone()
                         ) }
                 else { CCExpression::TypeAbs(
-                        String::from(x), 
+                        String::from(x),
                         Box::new(a_type.substitute(token, expr)),
                         Box::new(ret.substitute(token, expr))
-                        ) } 
+                        ) }
             }
             CCExpression::Application(lhs, rhs) => {
                 CCExpression::Application(
@@ -169,11 +197,11 @@ impl CCExpression {
                 names_match && args_match
             },
             (CCExpression::Var(l), CCExpression::Var(r)) => l == r,
-            (CCExpression::Application(q, r), 
+            (CCExpression::Application(q, r),
             CCExpression::Application(x, y)) => {
                 return q.alpha_equiv(x) && r.alpha_equiv(y)
             },
-            (CCExpression::Abs(x, a_type1, ret1), 
+            (CCExpression::Abs(x, a_type1, ret1),
             CCExpression::Abs(y, a_type2, ret2)) => {
                 if x == y {
                     return a_type1.alpha_equiv(a_type2) && ret1.alpha_equiv(ret2);
@@ -183,7 +211,7 @@ impl CCExpression {
                     return a_type1.alpha_equiv(&new_type) && ret1.alpha_equiv(&new_ret);
                 }
             },
-            (CCExpression::TypeAbs(x, a_type1, ret1), 
+            (CCExpression::TypeAbs(x, a_type1, ret1),
             CCExpression::TypeAbs(y, a_type2, ret2)) => {
                 if x == y {
                     return a_type1.alpha_equiv(a_type2) && ret1.alpha_equiv(ret2);
@@ -235,12 +263,12 @@ impl Clone for CCExpression {
                 CCExpression::Def(name.clone(), args.clone())
             }
             CCExpression::Application(left, right) => {
-                CCExpression::Application(left.clone(), 
+                CCExpression::Application(left.clone(),
                                           right.clone())
             }
             CCExpression::Abs(arg, t, ret) => {
                 CCExpression::Abs(arg.clone(),
-                                  t.clone(), 
+                                  t.clone(),
                                   ret.clone())
             }
             CCExpression::TypeAbs(arg, t, ret) => {
@@ -302,7 +330,7 @@ mod tests {
     fn to_latex_simple_appl() {
         let expr1 = CCExpression::Var(String::from("apple"));
         let expr2 = CCExpression::Var(String::from("orange"));
-        let expr3 = CCExpression::Application(Box::new(expr1), 
+        let expr3 = CCExpression::Application(Box::new(expr1),
                                               Box::new(expr2));
         assert_eq!(expr3.to_latex(), "apple orange");
     }
@@ -312,8 +340,8 @@ mod tests {
         let expr1 = String::from("potato");
         let expr2 = CCExpression::Var(String::from("A"));
         let expr3 = CCExpression::Var(String::from("avocado"));
-        let expr4 = CCExpression::Abs(expr1, 
-                                      Box::new(expr2), 
+        let expr4 = CCExpression::Abs(expr1,
+                                      Box::new(expr2),
                                       Box::new(expr3));
         assert_eq!(expr4.to_latex(), "\\lambda potato : A . avocado");
     }
@@ -323,10 +351,24 @@ mod tests {
         let expr1 = String::from("potato");
         let expr2 = CCExpression::Var(String::from("A"));
         let expr3 = CCExpression::Var(String::from("avocado"));
-        let expr4 = CCExpression::TypeAbs(expr1, 
-                                          Box::new(expr2), 
+        let expr4 = CCExpression::TypeAbs(expr1,
+                                          Box::new(expr2),
                                           Box::new(expr3));
-        assert_eq!(expr4.to_latex(), "\\prod potato : A . avocado");
+        assert_eq!(expr4.to_latex(), "A \\to avocado");
+    }
+
+    #[test]
+    fn to_latex_simple_depend_abs() {
+        let expr1 = String::from("potato");
+        let expr2 = CCExpression::Var(String::from("A"));
+        let expr3 = CCExpression::Application(
+            Box::new(CCExpression::Var(String::from("avocado"))),
+            Box::new(CCExpression::Var(String::from("potato")))
+            );
+        let expr4 = CCExpression::TypeAbs(expr1,
+                                          Box::new(expr2),
+                                          Box::new(expr3));
+        assert_eq!(expr4.to_latex(), "\\prod potato : A . avocado potato");
     }
 
     #[test]
@@ -343,10 +385,10 @@ mod tests {
         let expr1 = CCExpression::Var(String::from("A"));
         let expr2 = CCExpression::Var(String::from("banana"));
         let expr3 = CCExpression::Var(String::from("apple"));
-        let expr4 = CCExpression::Abs(String::from("x"), 
+        let expr4 = CCExpression::Abs(String::from("x"),
                                       Box::new(expr1),
                                       Box::new(expr3));
-        let expr5 = CCExpression::Application(Box::new(expr4), 
+        let expr5 = CCExpression::Application(Box::new(expr4),
                                               Box::new(expr2));
         let terms: Vec<String> = expr5.sub_terms().iter().map(|x| x.to_latex()).collect();
         assert_eq!(terms, vec![
@@ -371,14 +413,15 @@ mod tests {
         let expr1 = CCExpression::Var(String::from("A"));
         let expr2 = CCExpression::Var(String::from("banana"));
         let expr3 = CCExpression::Var(String::from("apple"));
-        let expr4 = CCExpression::Abs(String::from("x"), 
+        let expr4 = CCExpression::Abs(String::from("x"),
                                       Box::new(expr1),
                                       Box::new(expr3));
-        let expr5 = CCExpression::Application(Box::new(expr4), 
+        let expr5 = CCExpression::Application(Box::new(expr4),
                                               Box::new(expr2));
         let terms: Vec<String> = expr5.free_var();
         assert_eq!(terms, vec![
                    String::from("apple"),
+                   String::from("A"),
                    String::from("banana")
         ]);
     }

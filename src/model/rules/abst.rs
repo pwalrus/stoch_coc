@@ -125,8 +125,8 @@ mod tests {
             context: vec![]
         };
         assert_eq!(jdg1.to_latex(), "x : A \\vdash M : B");
-        assert_eq!(jdg2.to_latex(), "\\vdash \\prod x : A . B : \\square");
-        assert_eq!(jdg3.to_latex(), "\\vdash \\lambda x : A . M : \\prod x : A . B");
+        assert_eq!(jdg2.to_latex(), "\\vdash A \\to B : \\square");
+        assert_eq!(jdg3.to_latex(), "\\vdash \\lambda x : A . M : A \\to B");
 
         let output = rule.apply(Some(&jdg1), Some(&jdg2));
         assert_eq!(rule.name(), "abst");

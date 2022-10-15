@@ -243,7 +243,7 @@ mod tests {
                    "\\vdash \\ast : \\square",
                    "A : \\ast \\vdash A : \\ast",
                    "A : \\ast, x : A \\vdash A : \\ast",
-                   "A : \\ast \\vdash \\prod x : A . A : \\ast"
+                   "A : \\ast \\vdash A \\to A : \\ast"
         ]);
         let refs = check_proof(&[], &lines).unwrap();
         assert_eq!(lines.len(), refs.len());
@@ -262,8 +262,8 @@ mod tests {
                    "A : \\ast \\vdash A : \\ast",
                    "A : \\ast, x : A \\vdash x : A",
                    "A : \\ast, x : A \\vdash A : \\ast",
-                   "A : \\ast \\vdash \\prod x : A . A : \\ast",
-                   "A : \\ast \\vdash \\lambda x : A . x : \\prod x : A . A"
+                   "A : \\ast \\vdash A \\to A : \\ast",
+                   "A : \\ast \\vdash \\lambda x : A . x : A \\to A"
         ]);
         let refs = check_proof(&[], &lines).unwrap();
         assert_eq!(lines.len(), refs.len());
@@ -284,8 +284,8 @@ mod tests {
                    "A : \\ast, y : A \\vdash A : \\ast",
                    "A : \\ast, y : A, x : A \\vdash x : A",
                    "A : \\ast, y : A, x : A \\vdash A : \\ast",
-                   "A : \\ast, y : A \\vdash \\prod x : A . A : \\ast",
-                   "A : \\ast, y : A \\vdash \\lambda x : A . x : \\prod x : A . A",
+                   "A : \\ast, y : A \\vdash A \\to A : \\ast",
+                   "A : \\ast, y : A \\vdash \\lambda x : A . x : A \\to A",
                    "A : \\ast, y : A \\vdash (\\lambda x : A . x) y : A"
         ]);
         let refs = check_proof(&[], &lines).unwrap();
@@ -295,7 +295,7 @@ mod tests {
     #[test]
     fn inst_unpack() {
         let defs = vec![parse_definition(
-            "A : \\ast \\vartriangleright id \\langle A \\rangle := \\lambda x : A . x : \\prod x : A . A"
+            "A : \\ast \\vartriangleright id \\langle A \\rangle := \\lambda x : A . x : A \\to A"
             ).unwrap()];
         let jdg: Judgement = parse_judgement(
             "I:\\ast, q:I \\vdash (id \\langle I \\rangle) q : I").unwrap();
@@ -308,7 +308,7 @@ mod tests {
                    "I : \\ast \\vdash I : \\ast",
                    "I : \\ast, q : I \\vdash q : I",
                    "I : \\ast, q : I \\vdash I : \\ast",
-                   "I : \\ast, q : I \\vdash id \\langle I \\rangle : \\prod x : I . I",
+                   "I : \\ast, q : I \\vdash id \\langle I \\rangle : I \\to I",
                    "I : \\ast, q : I \\vdash id \\langle I \\rangle q : I"]);
         let refs = check_proof(&defs, &lines).unwrap();
         assert_eq!(lines.len(), refs.len());
