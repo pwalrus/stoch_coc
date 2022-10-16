@@ -749,6 +749,8 @@ mod tests {
             "A \\perp",
             "\\perp \\to A",
             "\\neg A",
+            "\\neg A B",
+            "\\neg (A B)"
         ];
         for s in samples {
             assert_eq!(parse(&s).unwrap().to_latex(), s);

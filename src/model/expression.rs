@@ -14,14 +14,17 @@ pub enum CCExpression {
 
 fn type_abs_to_latex(ex: &CCExpression, arg: &String, t: &CCExpression,
                      ret: &CCExpression) -> String {
-    if let Some((t1, ret1)) = ex.is_arrow() {
-        if ret1.is_contradiction() {
-            return format!("\\neg {}", t1.to_latex());
+    if let Some(x) = ex.is_neg() {
+        return if x.unbracketed() {
+            format!("\\neg {}", x.to_latex())
+        } else {
+            format!("\\neg ({})", x.to_latex())
         }
+    } else if let Some((t1, ret1)) = ex.is_arrow() {
         let lhs = match t1 {
             CCExpression::Var(_) => t1.to_latex(),
             CCExpression::TypeAbs(_,_,_) => {
-                if t1.is_contradiction() {
+                if t1.unbracketed() {
                     t1.to_latex()
                 } else {
                     format!("({})", t1.to_latex())
@@ -54,9 +57,7 @@ impl CCExpression {
                 format!("{} \\langle {} \\rangle", name, arg_list)
             },
             CCExpression::Application(left, right) => {
-                let r_out = if let CCExpression::Var(_) = **right {
-                     right.to_latex()
-                } else if right.is_contradiction() {
+                let r_out = if right.unbracketed() {
                     right.to_latex()
                 } else {
                     String::from("(") + &right.to_latex() + ")"
@@ -66,7 +67,7 @@ impl CCExpression {
                     CCExpression::Application(_, _) => left.to_latex(),
                     CCExpression::Def(_, _) => left.to_latex(),
                     CCExpression::TypeAbs(_,_,_) => {
-                        if left.is_contradiction() {
+                        if left.unbracketed() {
                             left.to_latex()
                         } else {
                             String::from("(") + &left.to_latex() + ")"
@@ -111,7 +112,15 @@ impl CCExpression {
             }
             _ => None
         }
+    }
 
+    pub fn is_neg(&self) -> Option<&CCExpression> {
+        if let Some((lhs, rhs)) = self.is_arrow() {
+            if rhs.is_contradiction() {
+                return Some(lhs);
+            }
+        }
+        return None;
     }
 
     pub fn var_str(&self) -> Option<String> {
@@ -125,6 +134,24 @@ impl CCExpression {
         match self {
             CCExpression::Prim => true,
             _ => false
+        }
+    }
+
+    pub fn unbracketed(&self) -> bool {
+        match self {
+            CCExpression::Var(_) => true,
+            CCExpression::Star => true,
+            CCExpression::Sq => true,
+            CCExpression::Def(_, _) => true,
+            _ => {
+                if self.is_contradiction() {
+                    true
+                } else if let Some(_) = self.is_neg() {
+                    true
+                } else {
+                    false
+                }
+            }
         }
     }
 
