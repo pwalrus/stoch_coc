@@ -30,6 +30,7 @@ fn all_alpha_num(tokens: &[String]) -> bool {
         String::from("\\langle"),
         String::from("\\rangle"),
         String::from("\\perp"),
+        String::from("\\neg"),
         String::from("\\prod")];
     let assessment: Option<bool> = tokens.into_iter().map(
         |t| !meta_token.contains(t)
@@ -153,8 +154,8 @@ impl TokenConsumer for StarConsumer {
             return None
         }
 
-        return Some(Consumed { 
-            expr: CCExpression::Star, 
+        return Some(Consumed {
+            expr: CCExpression::Star,
             remain: tokens[1..].to_vec()})
     }
 }
@@ -166,7 +167,7 @@ impl TokenConsumer for SqConsumer {
         if tokens.len() == 0 || tokens[0] != "\\square" {
             return None
         }
-        return Some(Consumed { 
+        return Some(Consumed {
             expr: CCExpression::Sq,
             remain: tokens[1..].to_vec()})
     }
@@ -322,6 +323,35 @@ impl TokenConsumer for PerpConsumer {
     }
 }
 
+struct NegConsumer {}
+
+impl TokenConsumer for NegConsumer {
+    fn consume(&self, tokens: &[String]) -> Option<Consumed> {
+        if tokens.len() == 0 || tokens[0] != "\\neg" {
+            return None;
+        }
+        for (idx, _) in tokens.iter().enumerate() {
+            if idx >= 1 {
+                if let Some(arg_expr) = find_expression(&tokens[1..idx+1]) {
+                    let contra = CCExpression::TypeAbs(
+                        "x".to_string(),
+                        Box::new(CCExpression::Star),
+                        Box::new(CCExpression::Var("x".to_string())));
+                    let arrow = CCExpression::TypeAbs(
+                        "x".to_string(),
+                        Box::new(arg_expr),
+                        Box::new(contra));
+                    return Some(Consumed {
+                        expr: arrow,
+                        remain: tokens[idx+1..].to_vec()
+                    });
+                }
+            }
+        }
+        return None;
+    }
+}
+
 fn consume_expressions(tokens: &[String]) -> Vec<CCExpression> {
     if tokens.len() == 0 {
         return vec![];
@@ -335,6 +365,7 @@ fn consume_expressions(tokens: &[String]) -> Vec<CCExpression> {
         &PrimConsumer{},
         &DefConsumer{},
         &PerpConsumer{},
+        &NegConsumer{},
         &AbsConsumer{}
     ];
 
@@ -717,7 +748,7 @@ mod tests {
             "\\perp A",
             "A \\perp",
             "\\perp \\to A",
-            "A \\to \\perp",
+            "\\neg A",
         ];
         for s in samples {
             assert_eq!(parse(&s).unwrap().to_latex(), s);

@@ -91,3 +91,19 @@ represents:
 \prod x : A . x
 ```
 
+### Negation
+
+The typical symbol for negation:
+
+```latex
+\neg A
+```
+
+represents:
+
+```latex
+A \to \perp
+```
+
+building upon the previous syntax.
+

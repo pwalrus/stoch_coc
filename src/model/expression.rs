@@ -15,6 +15,9 @@ pub enum CCExpression {
 fn type_abs_to_latex(ex: &CCExpression, arg: &String, t: &CCExpression,
                      ret: &CCExpression) -> String {
     if let Some((t1, ret1)) = ex.is_arrow() {
+        if ret1.is_contradiction() {
+            return format!("\\neg {}", t1.to_latex());
+        }
         let lhs = match t1 {
             CCExpression::Var(_) => t1.to_latex(),
             CCExpression::TypeAbs(_,_,_) => {
