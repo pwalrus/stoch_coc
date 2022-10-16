@@ -17,9 +17,18 @@ fn type_abs_to_latex(ex: &CCExpression, arg: &String, t: &CCExpression,
     if let Some((t1, ret1)) = ex.is_arrow() {
         let lhs = match t1 {
             CCExpression::Var(_) => t1.to_latex(),
+            CCExpression::TypeAbs(_,_,_) => {
+                if t1.is_contradiction() {
+                    t1.to_latex()
+                } else {
+                    format!("({})", t1.to_latex())
+                }
+            }
             _ => format!("({})", t1.to_latex())
         };
         lhs + " \\to " + &ret1.to_latex()
+    } else if ex.is_contradiction() {
+        "\\perp".to_string()
     } else {
         String::from("\\prod ") + arg + " : " + &t.to_latex()
         + " . " + &ret.to_latex()
@@ -44,6 +53,8 @@ impl CCExpression {
             CCExpression::Application(left, right) => {
                 let r_out = if let CCExpression::Var(_) = **right {
                      right.to_latex()
+                } else if right.is_contradiction() {
+                    right.to_latex()
                 } else {
                     String::from("(") + &right.to_latex() + ")"
                 };
@@ -51,6 +62,13 @@ impl CCExpression {
                     CCExpression::Var(_) => left.to_latex(),
                     CCExpression::Application(_, _) => left.to_latex(),
                     CCExpression::Def(_, _) => left.to_latex(),
+                    CCExpression::TypeAbs(_,_,_) => {
+                        if left.is_contradiction() {
+                            left.to_latex()
+                        } else {
+                            String::from("(") + &left.to_latex() + ")"
+                        }
+                    }
                     _ => String::from("(") + &left.to_latex() + ")"
                 };
                 l_out + " " + &r_out
@@ -60,6 +78,25 @@ impl CCExpression {
                 + " . " + &ret.to_latex()
             }
             CCExpression::TypeAbs(arg, t, ret) => type_abs_to_latex(self, &arg, &t, &ret)
+        }
+    }
+
+    pub fn is_contradiction(&self) -> bool {
+        match self {
+            CCExpression::TypeAbs(arg, t, ret) => {
+                match **t {
+                    CCExpression::Star => {
+                        if let Some(x) = ret.var_str() {
+                            if x == *arg {
+                                return true;
+                            }
+                        }
+                        false
+                    },
+                    _ => false
+                }
+            },
+            _ => false
         }
     }
 
@@ -430,6 +467,17 @@ mod tests {
     fn is_sort_test() {
         assert!(!CCExpression::Var(String::from("X")).is_sort());
         assert!(CCExpression::Star.is_sort());
+    }
+
+    #[test]
+    fn to_latex_contradiction() {
+        let ex1 = CCExpression::Var("x".to_string());
+        let ex2 = CCExpression::TypeAbs(
+            "x".to_string(),
+            Box::new(CCExpression::Star),
+            Box::new(ex1)
+        );
+        assert_eq!(ex2.to_latex(), "\\perp");
     }
 
     #[test]

@@ -29,6 +29,7 @@ fn all_alpha_num(tokens: &[String]) -> bool {
         String::from("\\to"),
         String::from("\\langle"),
         String::from("\\rangle"),
+        String::from("\\perp"),
         String::from("\\prod")];
     let assessment: Option<bool> = tokens.into_iter().map(
         |t| !meta_token.contains(t)
@@ -303,6 +304,24 @@ impl TokenConsumer for DefConsumer {
     }
 }
 
+struct PerpConsumer {}
+
+impl TokenConsumer for PerpConsumer {
+    fn consume(&self, tokens: &[String]) -> Option<Consumed> {
+        if tokens.len() == 0 || tokens[0] != "\\perp" {
+            return None;
+        }
+        return Some(Consumed {
+            expr: CCExpression::TypeAbs(
+                      "x".to_string(),
+                      Box::new(CCExpression::Star),
+                      Box::new(CCExpression::Var("x".to_string()))
+                      ),
+            remain: tokens[1..].to_vec()
+        });
+    }
+}
+
 fn consume_expressions(tokens: &[String]) -> Vec<CCExpression> {
     if tokens.len() == 0 {
         return vec![];
@@ -315,6 +334,7 @@ fn consume_expressions(tokens: &[String]) -> Vec<CCExpression> {
         &SqConsumer{},
         &PrimConsumer{},
         &DefConsumer{},
+        &PerpConsumer{},
         &AbsConsumer{}
     ];
 
@@ -684,6 +704,20 @@ mod tests {
             "(A \\to B) \\to C",
             "A \\to B \\to C \\to D",
             "A \\to (B \\to C) \\to D"
+        ];
+        for s in samples {
+            assert_eq!(parse(&s).unwrap().to_latex(), s);
+        }
+    }
+
+    #[test]
+    fn perp_bracket_conventions() {
+        let samples = [
+            "\\perp",
+            "\\perp A",
+            "A \\perp",
+            "\\perp \\to A",
+            "A \\to \\perp",
         ];
         for s in samples {
             assert_eq!(parse(&s).unwrap().to_latex(), s);

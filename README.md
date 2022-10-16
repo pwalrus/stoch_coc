@@ -76,3 +76,18 @@ represents:
 ```latex
 \prod x : A . B
 ```
+
+### Contradiction
+
+The typical symbol for contradiction:
+
+```latex
+\perp
+```
+
+represents:
+
+```latex
+\prod x : A . x
+```
+
