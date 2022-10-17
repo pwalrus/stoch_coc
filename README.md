@@ -107,3 +107,35 @@ A \to \perp
 
 building upon the previous syntax.
 
+### AND
+
+The typical symbol for and:
+
+```latex
+A \wedge B
+```
+
+represents:
+
+```latex
+\prod C : \ast . (A \to B \to C) \to C
+```
+
+building upon the previous `\to` syntax.
+
+### OR
+
+The typical symbol for or:
+
+```latex
+A \vee B
+```
+
+represents:
+
+```latex
+\prod C : \ast . (A \to C) \to (B \to C) \to C
+```
+
+building upon the previous `\to` syntax.
+

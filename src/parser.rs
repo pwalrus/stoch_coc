@@ -393,6 +393,21 @@ impl VeeWedgeConsumer {
             );
         return expr;
     }
+
+    fn fab_and_type(lhs: &CCExpression, rhs: &CCExpression) -> CCExpression {
+        let var = next_unused_cap_var(&[lhs.free_var(), rhs.free_var()].concat());
+        let var_expr = CCExpression::Var(var.to_string());
+        let second = VeeWedgeConsumer::fab_arrow_type(rhs, &var_expr);
+        let first = VeeWedgeConsumer::fab_arrow_type(lhs, &second);
+        let last = VeeWedgeConsumer::fab_arrow_type(&first, &var_expr);
+
+        let expr = CCExpression::TypeAbs(
+            var.to_string(),
+            Box::new(CCExpression::Star),
+            Box::new(last)
+            );
+        return expr;
+    }
 }
 
 impl TokenConsumer for VeeWedgeConsumer {
@@ -410,15 +425,14 @@ impl TokenConsumer for VeeWedgeConsumer {
                                     expr: VeeWedgeConsumer::fab_or_type(&a, &c),
                                     remain: vec![]
                                 });
-                            } else {
-                                println!("token1 not vee");
-                                return None;
+                            } else if token1 == "\\wedge" {
+                                return Some(Consumed {
+                                    expr: VeeWedgeConsumer::fab_and_type(&a, &c),
+                                    remain: vec![]
+                                });
                             }
                         },
-                        _ => {
-                            println!("no pair match:");
-                            return None;
-                        }
+                        _ => {}
                     }
                 }
             }
@@ -838,6 +852,12 @@ mod tests {
     fn vee_wedge_bracket_conventions() {
         let samples = [
             "A \\vee B",
+            "A \\vee B \\vee C",
+            "A \\vee (B \\wedge C)",
+            "A \\wedge B",
+            "A \\wedge B \\wedge C",
+            "(A \\vee B) \\wedge C",
+            "A \\vee (B \\wedge C)",
         ];
         for s in samples {
             assert_eq!(parse(&s).unwrap().to_latex(), s);

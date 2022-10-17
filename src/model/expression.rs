@@ -15,7 +15,17 @@ pub enum CCExpression {
 fn type_abs_to_latex(ex: &CCExpression, arg: &String, t: &CCExpression,
                      ret: &CCExpression) -> String {
     if let Some((a, b)) = ex.is_or() {
-        format!("{} \\vee {}", a.to_latex(), b.to_latex())
+        let lhs = if a.is_or().is_some() || a.unbracketed() { a.to_latex()
+        } else { format!("({})", a.to_latex()) };
+        let rhs = if b.is_or().is_some() || b.unbracketed() { b.to_latex()
+        } else { format!("({})", b.to_latex()) };
+        format!("{} \\vee {}", lhs, rhs)
+    } else if let Some((a, b)) = ex.is_and() {
+        let lhs = if a.is_and().is_some() || a.unbracketed() { a.to_latex()
+        } else { format!("({})", a.to_latex()) };
+        let rhs = if b.is_and().is_some() || b.unbracketed() { b.to_latex()
+        } else { format!("({})", b.to_latex()) };
+        format!("{} \\wedge {}", lhs, rhs)
     } else if let Some(x) = ex.is_neg() {
         return if x.unbracketed() {
             format!("\\neg {}", x.to_latex())
@@ -157,6 +167,36 @@ impl CCExpression {
         }
     }
 
+    pub fn is_and(&self) -> Option<(&CCExpression, &CCExpression)> {
+        match self {
+            CCExpression::TypeAbs(arg, t, ret) => {
+                let top_arrow = ret.is_arrow();
+                match (*t.clone(), top_arrow) {
+                    (CCExpression::Star, Some((seq, ret1))) => {
+                        let first_a = seq.is_arrow();
+                        let ret_cmp = CCExpression::Var(arg.to_string());
+                        if *ret1 != ret_cmp { return None; }
+                        match first_a {
+                            Some((lhs, mid_arrow)) => {
+                                let mid_a = mid_arrow.is_arrow();
+                                match mid_a {
+                                    Some((rhs, ret2)) => {
+                                        if *ret2 == ret_cmp {
+                                            return Some((lhs, rhs));
+                                        } else { return None; }
+                                    },
+                                    _ => { return None; }
+                                }
+                            },
+                            _ => { return None; }
+                        }
+                    },
+                    _ => None
+                }
+            },
+            _ => { return None; }
+        }
+    }
     pub fn var_str(&self) -> Option<String> {
         match self {
             CCExpression::Var(x) => Some(x.to_string()),
