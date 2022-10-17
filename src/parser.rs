@@ -13,6 +13,15 @@ fn next_unused_var(used: &[String]) -> String {
     return String::from("x");
 }
 
+fn next_unused_cap_var(used: &[String]) -> String {
+    for ch in 'A'..'Z' {
+        if !used.contains(&ch.to_string()) {
+            return ch.to_string();
+        }
+    }
+    return String::from("x");
+}
+
 
 fn all_alpha_num(tokens: &[String]) -> bool {
     let meta_token: Vec<String> = vec![
@@ -31,6 +40,8 @@ fn all_alpha_num(tokens: &[String]) -> bool {
         String::from("\\rangle"),
         String::from("\\perp"),
         String::from("\\neg"),
+        String::from("\\vee"),
+        String::from("\\wedge"),
         String::from("\\prod")];
     let assessment: Option<bool> = tokens.into_iter().map(
         |t| !meta_token.contains(t)
@@ -352,6 +363,71 @@ impl TokenConsumer for NegConsumer {
     }
 }
 
+
+struct VeeWedgeConsumer {}
+
+impl VeeWedgeConsumer {
+
+    fn fab_arrow_type(lhs: &CCExpression, rhs: &CCExpression) -> CCExpression {
+        let var = next_unused_var(&rhs.free_var());
+        let expr = CCExpression::TypeAbs(
+            var.to_string(),
+            Box::new(lhs.clone()),
+            Box::new(rhs.clone())
+            );
+        return expr;
+    }
+
+    fn fab_or_type(lhs: &CCExpression, rhs: &CCExpression) -> CCExpression {
+        let var = next_unused_cap_var(&[lhs.free_var(), rhs.free_var()].concat());
+        let var_expr = CCExpression::Var(var.to_string());
+        let first = VeeWedgeConsumer::fab_arrow_type(lhs, &var_expr);
+        let second = VeeWedgeConsumer::fab_arrow_type(rhs, &var_expr);
+        let mid = VeeWedgeConsumer::fab_arrow_type(&second, &var_expr);
+        let last = VeeWedgeConsumer::fab_arrow_type(&first, &mid);
+
+        let expr = CCExpression::TypeAbs(
+            var.to_string(),
+            Box::new(CCExpression::Star),
+            Box::new(last)
+            );
+        return expr;
+    }
+}
+
+impl TokenConsumer for VeeWedgeConsumer {
+
+    fn consume(&self, tokens: &[String]) -> Option<Consumed> {
+        if tokens.len() > 2 {
+            for (idx1, token1) in tokens.iter().enumerate() {
+                if ["\\vee".to_string(), "\\wedge".to_string()].contains(&token1) {
+                    let lhs = find_expression(&tokens[0..idx1]);
+                    let rhs = find_expression(&tokens[idx1+1..]);
+                    match (lhs, rhs) {
+                        (Some(a), Some(c)) => {
+                            if token1 == "\\vee" {
+                                return Some(Consumed {
+                                    expr: VeeWedgeConsumer::fab_or_type(&a, &c),
+                                    remain: vec![]
+                                });
+                            } else {
+                                println!("token1 not vee");
+                                return None;
+                            }
+                        },
+                        _ => {
+                            println!("no pair match:");
+                            return None;
+                        }
+                    }
+                }
+            }
+        }
+        return None;
+    }
+}
+
+
 fn consume_expressions(tokens: &[String]) -> Vec<CCExpression> {
     if tokens.len() == 0 {
         return vec![];
@@ -366,6 +442,7 @@ fn consume_expressions(tokens: &[String]) -> Vec<CCExpression> {
         &DefConsumer{},
         &PerpConsumer{},
         &NegConsumer{},
+        &VeeWedgeConsumer{},
         &AbsConsumer{}
     ];
 
@@ -751,6 +828,16 @@ mod tests {
             "\\neg A",
             "\\neg A B",
             "\\neg (A B)"
+        ];
+        for s in samples {
+            assert_eq!(parse(&s).unwrap().to_latex(), s);
+        }
+    }
+
+    #[test]
+    fn vee_wedge_bracket_conventions() {
+        let samples = [
+            "A \\vee B",
         ];
         for s in samples {
             assert_eq!(parse(&s).unwrap().to_latex(), s);

@@ -14,7 +14,9 @@ pub enum CCExpression {
 
 fn type_abs_to_latex(ex: &CCExpression, arg: &String, t: &CCExpression,
                      ret: &CCExpression) -> String {
-    if let Some(x) = ex.is_neg() {
+    if let Some((a, b)) = ex.is_or() {
+        format!("{} \\vee {}", a.to_latex(), b.to_latex())
+    } else if let Some(x) = ex.is_neg() {
         return if x.unbracketed() {
             format!("\\neg {}", x.to_latex())
         } else {
@@ -121,6 +123,38 @@ impl CCExpression {
             }
         }
         return None;
+    }
+
+    pub fn is_or(&self) -> Option<(&CCExpression, &CCExpression)> {
+        match self {
+            CCExpression::TypeAbs(arg, t, ret) => {
+                let top_arrow = ret.is_arrow();
+                match (*t.clone(), top_arrow) {
+                    (CCExpression::Star, Some((lhs, rhs))) => {
+                        let lhs_a = lhs.is_arrow();
+                        let rhs_a = rhs.is_arrow();
+                        match (lhs_a, rhs_a) {
+                            (Some((l_arg, ret1)), Some((mid_arrow, ret2))) => {
+                                let mid_a = mid_arrow.is_arrow();
+                                match mid_a {
+                                    Some((r_arg, ret3)) => {
+                                        let ret_cmp = CCExpression::Var(arg.to_string());
+                                        if *ret1 == ret_cmp && *ret2 == ret_cmp && *ret3 == ret_cmp {
+                                            return Some((&l_arg, &r_arg));
+                                        }
+                                        return None;
+                                    },
+                                    _ => { return None; }
+                                }
+                            },
+                            _ => { return None; }
+                        }
+                    },
+                    _ => { return None; }
+                }
+            },
+            _ => { return None; }
+        }
     }
 
     pub fn var_str(&self) -> Option<String> {
