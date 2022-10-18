@@ -4,6 +4,7 @@ mod parser;
 mod type_check;
 mod unpack_term;
 mod find_term;
+mod search;
 
 fn main() {
     println!("Hello, world!");
