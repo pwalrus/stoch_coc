@@ -9,7 +9,7 @@ pub struct SearchControl<T: Hash + Eq> {
 
 impl<T: Hash + Eq> SearchControl<T> {
 
-    pub fn search(&self, start: T) -> Option<T> {
+    pub fn search(&self, start: T) -> Result<T, String> {
         let mut queue = PriorityQueue::new();
         let w = self.model.weight(&start);
         queue.push(start, w);
@@ -23,10 +23,10 @@ impl<T: Hash + Eq> SearchControl<T> {
                     queue.push(x, w);
                 }
             } else {
-                return Some(next.remove(done.unwrap().0));
+                return self.model.finalize(next.remove(done.unwrap().0));
             }
         }
-        return None;
+        return Err("Exhausted all search options.".to_string());
     }
 }
 
@@ -54,6 +54,10 @@ mod tests {
 
         fn weight(&self, x: &i32) -> i32 {
             return -(x*x - self.target).abs();
+        }
+
+        fn finalize(&self, x: i32) -> Result<i32, String> {
+            return Ok(x);
         }
     }
 

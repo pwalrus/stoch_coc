@@ -8,7 +8,6 @@ use crate::type_check::{check_proof};
 
 use crate::search::proof_model::{ProofSearchModel};
 use crate::search::control::{SearchControl};
-use crate::search::proof::finalize::{recursive_finalize};
 
 
 fn do_search(partial: PartialSol,
@@ -20,16 +19,7 @@ fn do_search(partial: PartialSol,
         })
     };
 
-    let output = control.search(partial);
-    if let Some(done) = output {
-        let f_done = recursive_finalize(&done, defs);
-        match f_done {
-            Ok(x) => return Ok(x),
-            Err(x) => return Err(x)
-        }
-    }
-
-    return Err("Search failed".to_string());
+    control.search(partial)
 }
 
 pub fn find_term(s_type: &CCExpression, context: &[Statement], defs: &[Definition]) -> Result<Proof, String> {

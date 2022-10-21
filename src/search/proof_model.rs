@@ -4,6 +4,7 @@ use crate::model::partial::{Goal, PartialSol};
 
 use super::base::{SearchModel};
 use super::proof::subgoal::{unpack_goal};
+use super::proof::finalize::{recursive_finalize};
 
 fn next_sol_from_sol(partial: &PartialSol,
                      defs: &[Definition]) -> Result<Vec<PartialSol>, String> {
@@ -47,6 +48,10 @@ impl SearchModel<PartialSol> for ProofSearchModel {
             let c = x.count();
             let w = (c.i*20 + c.u*10 + c.f) as i32;
             return 10 - w
+        }
+
+        fn finalize(&self, x: PartialSol) -> Result<PartialSol, String> {
+            return recursive_finalize(&x, &self.defs);
         }
 }
 
