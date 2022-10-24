@@ -33,7 +33,7 @@ impl GoalCount {
 #[derive(Debug,PartialEq,Eq,Clone)]
 pub enum Goal {
     Initial(CCExpression, Vec<Statement>),
-    Unpacked(CCExpression, Vec<Goal>),
+    Unpacked(CCExpression, CCExpression, Vec<Goal>),
     Final(Vec<Judgement>)
 }
 
@@ -41,9 +41,9 @@ impl Goal {
     pub fn to_latex(&self) -> String {
         match self {
             Goal::Initial(ex, _) => format!("?? : {}", ex.to_latex()),
-            Goal::Unpacked(ex, lst) => {
+            Goal::Unpacked(_, ex, lst) => {
                 lst.iter().map(|x| x.to_latex()
-                               ).collect::<Vec<String>>().join("\n") + 
+                               ).collect::<Vec<String>>().join("\n") +
                     "\n" + &format!("?? : {}", ex.to_latex())
             },
             Goal::Final(lst) => {
@@ -56,7 +56,7 @@ impl Goal {
     pub fn count(&self) -> GoalCount {
         match self {
             Goal::Initial(_, _) => GoalCount {i: 1, u: 0, f:0},
-            Goal::Unpacked(_, lst) => {
+            Goal::Unpacked(_, _, lst) => {
                 GoalCount {i: 0, u: 1, f:0} +
                     lst.iter().map(
                         |x| x.count()
@@ -71,8 +71,8 @@ impl Goal {
 
     pub fn replace(&self, old_g: &Goal, new_g: &Goal) -> Goal {
         match self {
-            Goal::Unpacked(ex, lst) => {
-                Goal::Unpacked(ex.clone(),
+            Goal::Unpacked(term, ex, lst) => {
+                Goal::Unpacked(term.clone(), ex.clone(),
                 lst.iter().map(
                     |x| if x == old_g { new_g.clone() }
                     else { x.replace(old_g, new_g) }
@@ -86,7 +86,7 @@ impl Goal {
     pub fn active(&self) -> Vec<&Goal> {
         match self {
             Goal::Initial(_, _) => vec![self],
-            Goal::Unpacked(_, lst) => {
+            Goal::Unpacked(_, _, lst) => {
                 lst.iter().map(|x| x.active()).flatten().collect()
             },
             _ => vec![]
@@ -148,7 +148,7 @@ mod tests {
         let t1 = CCExpression::Var("A".to_string());
         let stmt1 = Statement {
             s_type: CCExpression::Star,
-            subject: t1.clone() 
+            subject: t1.clone()
         };
         let g1 = Goal::Initial(CCExpression::TypeAbs("x".to_string(),
                                                      Box::new(t1.clone()),
@@ -172,11 +172,12 @@ mod tests {
             Box::new(t1.clone()));
         let stmt1 = Statement {
             s_type: CCExpression::Star,
-            subject: t1.clone() 
+            subject: t1.clone()
         };
 
         let g1 = Goal::Initial(t2.clone(), vec![]);
-        let g2 = Goal::Unpacked(t2.clone(), vec![
+        let g2 = Goal::Unpacked(CCExpression::Var("x".to_string()),
+                                t2.clone(), vec![
                                 Goal::Initial(t1.clone(), vec![])
         ]);
         let g3 = g2.replace(&Goal::Initial(t1.clone(), vec![]), &Goal::Initial(t2.clone(), vec![]));
@@ -210,7 +211,7 @@ mod tests {
             Box::new(t1.clone()));
         let stmt1 = Statement {
             s_type: CCExpression::Star,
-            subject: t1.clone() 
+            subject: t1.clone()
         };
         let jdg = Judgement {
             defs: vec![],

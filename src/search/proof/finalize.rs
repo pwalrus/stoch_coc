@@ -81,7 +81,7 @@ fn recursive_finalize_g(g1: &Goal, context: &[Statement],
     match g1 {
         Goal::Final(jdgs) => Ok(Goal::Final(jdgs.to_vec())),
         Goal::Initial(_, _) => Err(format!("cannot finalize initial: {}", g1.to_latex())),
-        Goal::Unpacked(ex, subs) => {
+        Goal::Unpacked(_, ex, subs) => {
             let rec: Vec<Result<Goal, String>> = subs.iter().map(
                 |g2| recursive_finalize_g(g2, context, defs)
                 ).collect();
