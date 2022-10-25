@@ -1,29 +1,10 @@
 
 use crate::model::def::{Definition};
-use crate::model::partial::{Goal, PartialSol};
+use crate::model::partial::{PartialSol};
 
 use super::base::{SearchModel};
-use super::proof::subgoal::{unpack_goal};
+use super::proof::subgoal::{next_sol_from_sol};
 use super::proof::finalize::{recursive_finalize};
-
-fn next_sol_from_sol(partial: &PartialSol,
-                     defs: &[Definition]) -> Result<Vec<PartialSol>, String> {
-    let active = partial.active();
-    if active.len() == 0 {
-        return Err("sol has no path forward".to_string());
-    }
-    let goal_subs: Vec<(Goal, Vec<Goal>)> = active.iter().filter_map(
-            |g| match unpack_goal(g, &partial.context, defs) {
-                Ok(x) => Some(x),
-                _ => None
-            }).collect();
-    let output: Vec<PartialSol> = goal_subs.iter().map(
-            |(old_g, g_lst)| g_lst.iter().map(
-                move |new_g| partial.replace(&old_g, new_g)
-                )
-            ).flatten().collect();
-    return Ok(output);
-}
 
 pub struct ProofSearchModel {
     pub defs: Vec<Definition>

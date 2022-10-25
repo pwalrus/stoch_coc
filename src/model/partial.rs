@@ -29,6 +29,10 @@ impl GoalCount {
     }
 }
 
+pub struct WithConc {
+    pub conc: Vec<Statement>,
+    pub goal: Goal
+}
 
 #[derive(Debug,PartialEq,Eq,Clone)]
 pub enum Goal {
@@ -83,11 +87,11 @@ impl Goal {
         }
     }
 
-    pub fn active(&self) -> Vec<&Goal> {
+    pub fn active(&self, concs: &[Statement]) -> Vec<WithConc> {
         match self {
-            Goal::Initial(_, _) => vec![self],
+            Goal::Initial(_, _) => vec![WithConc{conc: concs.to_vec(), goal: self.clone()}],
             Goal::Unpacked(_, _, lst) => {
-                lst.iter().map(|x| x.active()).flatten().collect()
+                lst.iter().map(|x| x.active(concs)).flatten().collect()
             },
             _ => vec![]
         }
@@ -126,9 +130,9 @@ impl PartialSol {
         }
     }
 
-    pub fn active(&self) -> Vec<&Goal> {
+    pub fn active(&self) -> Vec<WithConc> {
         return self.goals.iter().map(
-            |g| g.active()
+            |g| g.active(&[])
             ).flatten().collect();
     }
 }
@@ -195,7 +199,7 @@ mod tests {
         assert_eq!(partial2.count(), GoalCount {i: 1, u: 1, f:0});
         let act = partial.active();
         assert_eq!(act.len(), 1);
-        assert_eq!(act.last().unwrap().to_latex(), "?? : A");
+        assert_eq!(act.last().unwrap().goal.to_latex(), "?? : A");
     }
 
     #[test]
