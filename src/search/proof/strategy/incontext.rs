@@ -1,6 +1,6 @@
 
-
 use crate::model::statement::{Statement};
+use crate::model::judgement::{Judgement};
 use crate::model::expression::{CCExpression};
 use crate::model::def::{Definition};
 use crate::model::partial::{Goal};
@@ -13,7 +13,7 @@ impl ProofStrat for InContext {
     fn sub_goals(&self, ex: &CCExpression,
                  context: &[Statement],
                  inner_context: &[Statement],
-                 _: &[Statement],
+                 _: &[Judgement],
                  defs: &[Definition]) -> Result<Vec<Goal>, String> {
 
         let output: Vec<Goal> = context.iter().chain(inner_context).filter_map(

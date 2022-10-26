@@ -29,8 +29,9 @@ impl GoalCount {
     }
 }
 
+#[derive(Debug,PartialEq,Eq,Clone)]
 pub struct WithConc {
-    pub conc: Vec<Statement>,
+    pub conc: Vec<Judgement>,
     pub goal: Goal
 }
 
@@ -87,11 +88,23 @@ impl Goal {
         }
     }
 
-    pub fn active(&self, concs: &[Statement]) -> Vec<WithConc> {
+    pub fn active(&self, concs: &[Judgement]) -> Vec<WithConc> {
         match self {
             Goal::Initial(_, _) => vec![WithConc{conc: concs.to_vec(), goal: self.clone()}],
             Goal::Unpacked(_, _, lst) => {
-                lst.iter().map(|x| x.active(concs)).flatten().collect()
+                let mut accum: Vec<Judgement> = concs.to_vec();
+                let mut blocks: Vec<WithConc> = vec![];
+                for x in lst {
+                    match x {
+                        Goal::Final(jdgs) => {
+                            accum = [accum, jdgs.to_vec()].concat();
+                        },
+                        _ => {
+                            blocks = [blocks, x.active(&accum)].concat();
+                        }
+                    }
+                }
+                blocks
             },
             _ => vec![]
         }
@@ -226,14 +239,27 @@ mod tests {
             }
         };
 
-        let g1 = Goal::Final(vec![jdg]);
+        let g1 = Goal::Final(vec![jdg.clone()]);
         assert_eq!(g1.to_latex(), "A : \\ast \\vdash \\lambda x : A . x : A \\to A");
         let partial = PartialSol{
             context: vec![stmt1],
-            goals: vec![g1]
+            goals: vec![g1.clone()]
         };
         assert_eq!(partial.to_latex(), "A : \\ast\nA : \\ast \\vdash \\lambda x : A . x : A \\to A");
         assert_eq!(partial.count(), GoalCount {i: 0, u: 0, f:1});
+
+        let g2 = Goal::Initial(CCExpression::Var("A".to_string()), vec![]);
+        let g3 = Goal::Initial(CCExpression::Var("B".to_string()), vec![]);
+        let g4 = Goal::Unpacked(CCExpression::Star,
+                                CCExpression::Star,
+                                vec![g2.clone(), g1, g3.clone()]);
+
+        let active = g4.active(&[]);
+
+        assert_eq!(active, [
+                   WithConc { conc: vec![], goal: g2},
+                   WithConc { conc: vec![jdg], goal: g3}
+        ]);
     }
 }
 

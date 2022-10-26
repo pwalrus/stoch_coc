@@ -1,5 +1,6 @@
 
 use crate::model::statement::{Statement};
+use crate::model::judgement::{Judgement};
 use crate::model::expression::{CCExpression};
 use crate::model::def::{Definition};
 use crate::model::partial::{PartialSol, Goal, WithConc};
@@ -9,7 +10,7 @@ use super::strategy::stratset::{standard_strategy};
 fn sub_goals_from_expression(ex: &CCExpression,
                              context: &[Statement],
                              inner_context: &[Statement],
-                             concs: &[Statement],
+                             concs: &[Judgement],
                              defs: &[Definition]) -> Result<Vec<Goal>, String> {
 
     let strategies = standard_strategy();

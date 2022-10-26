@@ -1,5 +1,6 @@
 
 use crate::model::statement::{Statement};
+use crate::model::judgement::{Judgement};
 use crate::model::expression::{CCExpression};
 use crate::model::def::{Definition};
 use crate::model::partial::{Goal};
@@ -11,7 +12,7 @@ impl ProofStrat for UnpackTypeAbs {
     fn sub_goals(&self, ex: &CCExpression,
                  _: &[Statement],
                  inner_context: &[Statement],
-                 _: &[Statement],
+                 _: &[Judgement],
                  _: &[Definition]) -> Result<Vec<Goal>, String> {
         if let CCExpression::TypeAbs(var, a_type, ret) = ex {
             let new_stmt = Statement {
