@@ -7,73 +7,38 @@ use crate::model::def::{Definition};
 use crate::model::partial::{Goal, PartialSol};
 
 
-fn final_goal_from_var(name: &String, subs: &[Goal],
-                       _: &[Definition]) -> Result<Goal, String> {
-    let term = subs.iter().find(
-        |g| if let Goal::Final(jdgs) = g {
-            jdgs.len() > 0 && jdgs.last().unwrap().statement.s_type.var_str() == Some(name.to_string())
-        } else { false });
-    match term {
-        Some(g) => Ok(g.clone()),
-        None => Err(format!("var: No subgoal matches {}", name))
+fn final_goal_from_subs(inst: &CCExpression, ex: &CCExpression,
+                        context: &[Statement],
+                        incontext: &[Statement], subs: &[Goal],
+                        _: &[Definition]) -> Result<Goal, String> {
+    let last_ex: Vec<&Judgement> = subs.iter().filter_map(
+        |g| match g {
+            Goal::Final(jdgs) => jdgs.last(),
+            _ => None
+        }).collect();
+    if last_ex.len() != subs.len() {
+        return Err("Not all goals were finalized.".to_string());
     }
-}
+    let mut term = inst.clone();
 
-fn final_goal_from_type_abs(name: &String,
-                            a_type: &CCExpression,
-                            ret: &CCExpression,
-                            subs: &[Goal],
-                            _: &[Definition]) -> Result<Goal, String> {
-    let lines = subs.iter().find_map(
-        |g| if let Goal::Final(jdgs) = g {
-            if jdgs.len() > 0 && jdgs.last().unwrap().statement.s_type == *ret{
-                Some(jdgs)
-            } else { None }
-        } else { None });
-
-    match lines {
-        Some(jdgs) => {
-            let last = jdgs.last().unwrap();
-            let stmt1 = Statement {
-                subject: CCExpression::Abs( name.to_string(), Box::new(a_type.clone()), Box::new(last.statement.subject.clone())),
-                s_type: CCExpression::TypeAbs( name.to_string(), Box::new(a_type.clone()), Box::new(ret.clone()))
-            };
-            let stmt2 = Statement {
-                subject: stmt1.s_type.clone(),
-                s_type: CCExpression::Star
-            };
-            let stmt3 = Statement {
-                subject: ret.clone(),
-                s_type: CCExpression::Star
-            };
-            let output = Goal::Final(
-                [jdgs.clone(), vec![Judgement{
-                    defs: last.defs.clone(),
-                    context: last.context.to_vec(),
-                    statement: stmt3
-                }, Judgement{
-                    defs: last.defs.clone(),
-                    context: last.context[..last.context.len() - 1].to_vec(),
-                    statement: stmt2
-                }, Judgement{
-                    defs: last.defs.clone(),
-                    context: last.context[..last.context.len() - 1].to_vec(),
-                    statement: stmt1
-                }]].concat());
-            Ok(output)
-        },
-        None => Err(format!("type_abs: No subgoal matches {}", ret.to_latex()))
+    for (idx, ex) in last_ex.iter().enumerate() {
+        term = term.substitute(&format!("sub_{{{}}}", idx), &ex.statement.subject);
     }
-}
+    let jdgs: Vec<Judgement> = subs.iter().filter_map(
+        |g| match g {
+            Goal::Final(x) => Some(x.to_vec()),
+            _ => None
+        }).flatten().collect();
+    let last_line = Judgement {
+        defs: jdgs.last().unwrap().defs.to_vec(),
+        context: [context, incontext].concat(),
+        statement: Statement {
+            subject: term,
+            s_type: ex.clone()
+        }
+    };
 
-fn final_goal_from_subs(ex: &CCExpression, subs: &[Goal],
-                        defs: &[Definition]) -> Result<Goal, String> {
-    match ex {
-        CCExpression::Var(x) => final_goal_from_var(x, subs, defs),
-        CCExpression::TypeAbs(x, a_type, ret) => final_goal_from_type_abs(x, &a_type, &ret, subs, defs),
-        _ => Err(format!("failed to find final for {}", ex.to_latex()))
-    }
-
+    return Ok(Goal::Final([jdgs, vec![last_line]].concat()));
 }
 
 fn recursive_finalize_g(g1: &Goal, context: &[Statement],
@@ -81,7 +46,7 @@ fn recursive_finalize_g(g1: &Goal, context: &[Statement],
     match g1 {
         Goal::Final(jdgs) => Ok(Goal::Final(jdgs.to_vec())),
         Goal::Initial(_, _) => Err(format!("cannot finalize initial: {}", g1.to_latex())),
-        Goal::Unpacked(_, ex, subs) => {
+        Goal::Unpacked(inst, ex, subs, incontext) => {
             let rec: Vec<Result<Goal, String>> = subs.iter().map(
                 |g2| recursive_finalize_g(g2, context, defs)
                 ).collect();
@@ -92,7 +57,10 @@ fn recursive_finalize_g(g1: &Goal, context: &[Statement],
             }
             let new_subs: Vec<Goal> = rec.iter().map(|x| x.clone().unwrap()).collect();
 
-            final_goal_from_subs(&ex, &new_subs, defs)
+            final_goal_from_subs(&inst, &ex,
+                                 context, incontext,
+                                 &new_subs,
+                                 defs)
         }
     }
 }

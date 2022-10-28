@@ -38,7 +38,7 @@ pub struct WithConc {
 #[derive(Debug,PartialEq,Eq,Clone)]
 pub enum Goal {
     Initial(CCExpression, Vec<Statement>),
-    Unpacked(CCExpression, CCExpression, Vec<Goal>),
+    Unpacked(CCExpression, CCExpression, Vec<Goal>, Vec<Statement>),
     Final(Vec<Judgement>)
 }
 
@@ -46,7 +46,7 @@ impl Goal {
     pub fn to_latex(&self) -> String {
         match self {
             Goal::Initial(ex, _) => format!("?? : {}", ex.to_latex()),
-            Goal::Unpacked(_, ex, lst) => {
+            Goal::Unpacked(_, ex, lst, _) => {
                 lst.iter().map(|x| x.to_latex()
                                ).collect::<Vec<String>>().join("\n") +
                     "\n" + &format!("?? : {}", ex.to_latex())
@@ -61,7 +61,7 @@ impl Goal {
     pub fn count(&self) -> GoalCount {
         match self {
             Goal::Initial(_, _) => GoalCount {i: 1, u: 0, f:0},
-            Goal::Unpacked(_, _, lst) => {
+            Goal::Unpacked(_, _, lst, _) => {
                 GoalCount {i: 0, u: 1, f:0} +
                     lst.iter().map(
                         |x| x.count()
@@ -76,12 +76,13 @@ impl Goal {
 
     pub fn replace(&self, old_g: &Goal, new_g: &Goal) -> Goal {
         match self {
-            Goal::Unpacked(term, ex, lst) => {
+            Goal::Unpacked(term, ex, lst, ctx) => {
                 Goal::Unpacked(term.clone(), ex.clone(),
                 lst.iter().map(
                     |x| if x == old_g { new_g.clone() }
                     else { x.replace(old_g, new_g) }
-                    ).collect()
+                    ).collect(),
+                    ctx.to_vec()
                 )
             },
             _ => self.clone()
@@ -91,7 +92,7 @@ impl Goal {
     pub fn active(&self, concs: &[Judgement]) -> Vec<WithConc> {
         match self {
             Goal::Initial(_, _) => vec![WithConc{conc: concs.to_vec(), goal: self.clone()}],
-            Goal::Unpacked(_, _, lst) => {
+            Goal::Unpacked(_, _, lst, _) => {
                 let mut accum: Vec<Judgement> = concs.to_vec();
                 let mut blocks: Vec<WithConc> = vec![];
                 for x in lst {
@@ -196,7 +197,7 @@ mod tests {
         let g2 = Goal::Unpacked(CCExpression::Var("x".to_string()),
                                 t2.clone(), vec![
                                 Goal::Initial(t1.clone(), vec![])
-        ]);
+        ], vec![]);
         let g3 = g2.replace(&Goal::Initial(t1.clone(), vec![]), &Goal::Initial(t2.clone(), vec![]));
         assert_eq!(g1.to_latex(), "?? : A \\to A");
         assert_eq!(g2.to_latex(), "?? : A\n?? : A \\to A");
@@ -252,7 +253,7 @@ mod tests {
         let g3 = Goal::Initial(CCExpression::Var("B".to_string()), vec![]);
         let g4 = Goal::Unpacked(CCExpression::Star,
                                 CCExpression::Star,
-                                vec![g2.clone(), g1, g3.clone()]);
+                                vec![g2.clone(), g1, g3.clone()], vec![]);
 
         let active = g4.active(&[]);
 

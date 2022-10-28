@@ -5,6 +5,7 @@ use crate::model::def::{Definition};
 use crate::model::proof::{Proof};
 use crate::model::partial::{Goal, PartialSol};
 use crate::type_check::{check_proof};
+use crate::unpack_term::{unpack_term};
 
 use crate::search::proof_model::{ProofSearchModel};
 use crate::search::control::{SearchControl};
@@ -34,10 +35,13 @@ pub fn find_term(s_type: &CCExpression, context: &[Statement], defs: &[Definitio
         Ok(out_partial) => {
             let lines_o = out_partial.goals.last().unwrap();
             if let Goal::Final(lines) = lines_o {
-                let refs_o = check_proof(&[], lines);
+                let term: &CCExpression = &lines.last().unwrap().statement.subject;
+                let full_lines = unpack_term(term, context, defs);
+                let refs_o = check_proof(&[], &full_lines);
                 match refs_o {
-                    Ok(refs) => Ok(Proof { lines: lines.clone(), refs: refs }),
+                    Ok(refs) => Ok(Proof { lines: full_lines.clone(), refs: refs }),
                     Err(x) => {
+                        println!("{}", lines.iter().map(|x| x.to_latex()).collect::<Vec<String>>().join("\n"));
                         Err(x)
                     }
                 }

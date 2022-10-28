@@ -24,13 +24,16 @@ impl ProofStrat for UnpackTypeAbs {
                     *ret.clone(),
                     [inner_context, &[new_stmt]].concat())
             ];
-            Ok(vec![Goal::Unpacked(CCExpression::Star,
+            Ok(vec![Goal::Unpacked(CCExpression::Abs(
+                                       var.to_string(),
+                                       Box::new(*a_type.clone()),
+                                       Box::new(CCExpression::Var("sub_{0}".to_string()))),
                                    CCExpression::TypeAbs(
                                        var.to_string(),
                                        Box::new(*a_type.clone()),
-                                       Box::new(*ret.clone())
-                                       ),
-                                       subs)])
+                                       Box::new(*ret.clone())),
+                                       subs,
+                                       inner_context.to_vec())])
         } else {
             Err(format!("Not a type abstraction: {}", ex.to_latex()))
         }
