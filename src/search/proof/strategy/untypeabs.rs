@@ -40,3 +40,34 @@ impl ProofStrat for UnpackTypeAbs {
     }
 }
 
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parser::{parse_judgement};
+
+    #[test]
+    fn test_unpack_type_abs_strat() {
+        let jdg: Judgement = parse_judgement("A:\\ast \\vdash y:\\prod x:A.A").unwrap();
+        let strat = UnpackTypeAbs {};
+        let ex = &jdg.statement.s_type;
+        let context = &jdg.context;
+        let res = strat.sub_goals(ex, context, &[], &[], &[]);
+
+        match res {
+            Ok(lst) => {
+                assert_eq!(lst.len(), 1);
+                if let Goal::Unpacked(inst, ex, subs, inner) = &lst[0] {
+                    assert_eq!(inst.to_latex(), "\\lambda x : A . sub_{0}");
+                    assert_eq!(ex.to_latex(), "A \\to A");
+                    assert_eq!(inner, &[]);
+                    if let Goal::Initial(ex, _) = &subs[0] {
+                        assert_eq!(ex.to_latex(), "A");
+                    } else { panic!(); }
+                } else { panic!(); }
+            },
+            Err(_) => { panic!(); }
+        }
+    }
+}
+
