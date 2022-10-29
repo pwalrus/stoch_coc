@@ -35,3 +35,29 @@ impl ProofStrat for InContext {
     }
 }
 
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parser::{parse_judgement};
+
+    #[test]
+    fn test_in_context_strat() {
+        let jdg: Judgement = parse_judgement("A:\\ast, x:A \\vdash y : A").unwrap();
+        let strat = InContext {};
+        let ex = &jdg.statement.s_type;
+        let context = &jdg.context;
+        let res = strat.sub_goals(ex, context, &[], &[], &[]);
+
+        match res {
+            Ok(lst) => {
+                assert_eq!(lst.len(), 1);
+                if let Goal::Final(jdgs) = &lst[0] {
+                    assert_eq!(jdgs.last().unwrap().statement.to_latex(), "x : A");
+                } else { panic!(); }
+            },
+            Err(_) => { panic!(); }
+        }
+    }
+}
+
