@@ -20,6 +20,10 @@ impl Statement {
     pub fn primative(&self) -> bool {
         return self.subject.primative();
     }
+
+    pub fn weaker_eq(lhs: &[Statement], rhs: &[Statement]) -> bool {
+        return rhs.iter().all(|x| lhs.contains(x));
+    }
 }
 
 #[cfg(test)]

@@ -116,6 +116,13 @@ impl CCExpression {
         }
     }
 
+    pub fn arrow_chain(&self) -> Vec<&CCExpression> {
+        match self.is_arrow() {
+            None => vec![&self],
+            Some((lhs, rhs)) => [vec![lhs], rhs.arrow_chain()].concat()
+        }
+    }
+
     pub fn is_arrow(&self) -> Option<(&CCExpression, &CCExpression)> {
         match self {
             CCExpression::TypeAbs(arg, t, ret) => {
@@ -493,9 +500,10 @@ mod tests {
         let expr2 = CCExpression::Var(String::from("A"));
         let expr3 = CCExpression::Var(String::from("avocado"));
         let expr4 = CCExpression::TypeAbs(expr1,
-                                          Box::new(expr2),
-                                          Box::new(expr3));
+                                          Box::new(expr2.clone()),
+                                          Box::new(expr3.clone()));
         assert_eq!(expr4.to_latex(), "A \\to avocado");
+        assert_eq!(expr4.arrow_chain(), vec![&expr2, &expr3]);
     }
 
     #[test]

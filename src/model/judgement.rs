@@ -39,7 +39,7 @@ impl Judgement {
     }
 
     pub fn weaker_eq(&self, rhs: &Judgement) -> bool {
-        return rhs.context.iter().all(|x| self.context.contains(x));
+        return Statement::weaker_eq(&self.context, &rhs.context);
     }
 
     pub fn to_latex(&self) -> String {
