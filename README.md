@@ -58,6 +58,41 @@ We need to distinguish between:
 
 This was resolved by changing the bracket style.
 
+Primative definitions (or Axioms) are indicated using the `independent` symbol instead of a definition term:
+
+```latex
+A : \ast \vartriangleright id \langle A \rangle := \independent : \prod x : A . A
+```
+
+
+## LaTeX Symbols
+
+All of the symbols required are available through `amssymb` and `amsmath`, with the exception of `independent`.
+
+This can be defined separately by the user if needed:
+
+```latex
+\def\independent{\perp\!\!\!\perp}
+```
+
+Altogether, any judgement/definition/proof can be compiled as a LaTeX document as follows:
+
+```latex
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\def\independent{\perp\!\!\!\perp}
+
+\begin{document}
+
+\begin{align*}
+A : \ast \vartriangleright id \langle A \rangle := \independent : \prod x : A . A
+\end{align*}
+
+\end{document}
+```
+
 ## Syntactic Sugar
 
 Basic logical operators are supported in this input/output format.
