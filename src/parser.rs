@@ -447,7 +447,6 @@ fn consume_expressions(tokens: &[String]) -> Vec<CCExpression> {
         return vec![];
     }
     let consumers: Vec<&dyn TokenConsumer> = vec![
-        &ToConsumer{},
         &VarConsumer{},
         &ParenConsumer{},
         &StarConsumer{},
@@ -457,7 +456,8 @@ fn consume_expressions(tokens: &[String]) -> Vec<CCExpression> {
         &PerpConsumer{},
         &NegConsumer{},
         &VeeWedgeConsumer{},
-        &AbsConsumer{}
+        &AbsConsumer{},
+        &ToConsumer{}
     ];
 
     for consumer in consumers {

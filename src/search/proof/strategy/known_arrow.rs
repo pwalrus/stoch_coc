@@ -59,10 +59,8 @@ impl ProofStrat for KnownArrow {
                  inner_context: &[Statement],
                  concs: &[Judgement],
                  _: &[Definition]) -> Result<Vec<Goal>, String> {
-        let full_context: Vec<Statement> = context.iter().chain(inner_context).map(|x| x.clone()).collect();
-        let usable_conc: Vec<Statement> = concs.iter().filter(
-            |j| Statement::weaker_eq(&full_context, &j.context)
-            ).map(|j| j.statement.clone()).collect();
+        let full_context: Vec<Statement> = self.full_context(context, inner_context);
+        let usable_conc: Vec<Statement> = self.usable_conc(&full_context, concs);
 
         let output: Vec<Goal> = full_context.iter().chain(&usable_conc).filter_map(
                 |stmt1| {

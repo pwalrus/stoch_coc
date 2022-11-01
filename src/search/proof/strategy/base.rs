@@ -12,5 +12,21 @@ pub trait ProofStrat {
                  inner_context: &[Statement],
                  concs: &[Judgement],
                  defs: &[Definition]) -> Result<Vec<Goal>, String>;
+
+    fn full_context(&self,
+                    context: &[Statement],
+                    inner_context: &[Statement],
+        ) -> Vec<Statement> {
+        context.iter().chain(inner_context).map(|x| x.clone()).collect()
+    }
+
+    fn usable_conc(&self,
+                   full_context: &[Statement],
+                   concs: &[Judgement],
+        ) -> Vec<Statement> {
+        concs.iter().filter(
+            |j| Statement::weaker_eq(&full_context, &j.context)
+            ).map(|j| j.statement.clone()).collect()
+    }
 }
 
