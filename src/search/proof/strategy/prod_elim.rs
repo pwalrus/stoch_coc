@@ -70,6 +70,12 @@ fn make_goal(arg: &CCExpression,
         )
 }
 
+fn type_already_known(new_type: &CCExpression,
+                      context: &[Statement],
+                      u_concs: &[Statement]) -> bool {
+    context.iter().chain(u_concs).any(|stmt| stmt.s_type.alpha_equiv(new_type))
+}
+
 impl ProofStrat for ProdElim {
     fn sub_goals(&self, ex: &CCExpression,
                  context: &[Statement],
@@ -82,7 +88,9 @@ impl ProofStrat for ProdElim {
         let prods = find_products(&full_context, &usable_conc);
         let matches = find_matches(&prods, &full_context, &usable_conc);
 
-        let goals: Vec<Goal> = matches.iter().map(
+        let goals: Vec<Goal> = matches.iter().filter(
+            |(_, _, new_type)| !type_already_known(new_type, &full_context, &usable_conc)
+            ).map(
             |(arg, p, new_type)| make_goal(arg, p, new_type, ex, context, inner_context)
             ).collect();
 

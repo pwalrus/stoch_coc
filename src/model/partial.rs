@@ -43,6 +43,14 @@ pub enum Goal {
 }
 
 impl Goal {
+    fn ctx_to_latex(&self, ctx: &[Statement]) -> String {
+        if ctx.len() > 0 {
+            format!(" (ctx: {})", ctx.iter().map(|x| x.to_latex()).collect::<Vec<String>>().join(", "))
+        } else {
+            "".to_string()
+        }
+    }
+
     pub fn to_latex(&self) -> String {
         self.to_latex_ind(0)
     }
@@ -50,7 +58,7 @@ impl Goal {
     pub fn to_latex_ind(&self, indent: u32) -> String {
         let ind: String = " ".repeat(indent as usize);
         match self {
-            Goal::Initial(ex, _) => format!("{}?? : {}", ind, ex.to_latex()),
+            Goal::Initial(ex, ctx) => format!("{}?? : {}{}", ind, ex.to_latex(), self.ctx_to_latex(ctx)),
             Goal::Unpacked(_, ex, lst, _) => {
                 lst.iter().map(|x| x.to_latex_ind(indent + 1)
                                ).collect::<Vec<String>>().join("\n") +
@@ -173,16 +181,20 @@ mod tests {
             s_type: CCExpression::Star,
             subject: t1.clone()
         };
+        let stmt2 = Statement {
+            s_type: CCExpression::Var("A".to_string()),
+            subject: CCExpression::Var("a".to_string())
+        };
         let g1 = Goal::Initial(CCExpression::TypeAbs("x".to_string(),
                                                      Box::new(t1.clone()),
                                                      Box::new(t1.clone())),
-                                                     vec![]);
-        assert_eq!(g1.to_latex(), "?? : A \\to A");
+                                                     vec![stmt2]);
+        assert_eq!(g1.to_latex(), "?? : A \\to A (ctx: a : A)");
         let partial = PartialSol{
             context: vec![stmt1],
             goals: vec![g1]
         };
-        assert_eq!(partial.to_latex(), "A : \\ast\n?? : A \\to A");
+        assert_eq!(partial.to_latex(), "A : \\ast\n?? : A \\to A (ctx: a : A)");
         assert_eq!(partial.count(), GoalCount {i: 1, u: 0, f:0});
     }
 

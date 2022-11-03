@@ -1,5 +1,6 @@
 
 use super::expression::{CCExpression};
+use crate::util::{*};
 
 #[derive(PartialEq,Eq,Debug,Clone)]
 pub struct Statement {
@@ -8,6 +9,31 @@ pub struct Statement {
 }
 
 impl Statement {
+
+    pub fn next_unused_var(context: &[Statement]) -> String {
+        let used: Vec<String> = context.iter().filter_map(|stmt| {
+            match &stmt.subject {
+                CCExpression::Var(x) => Some(x.clone()),
+                _ =>  None
+            }
+        }).collect();
+        next_unused_var(&used)
+    }
+
+    pub fn next_unused_type(context: &[Statement]) -> String {
+        let used_var: Vec<String> = context.iter().filter_map(|stmt| {
+            match &stmt.subject {
+                CCExpression::Var(x) => Some(x.clone()),
+                _ =>  None
+            }}).collect();
+        let used_type: Vec<String> = context.iter().filter_map(|stmt| {
+            match &stmt.s_type {
+                CCExpression::Var(x) => Some(x.clone()),
+                _ =>  None
+            }}).collect();
+        let used: Vec<String> = [used_var, used_type].concat();
+        next_unused_cap_var(&used)
+    }
 
     pub fn to_latex(&self) -> String {
         return self.subject.to_latex() + " : " + &self.s_type.to_latex()

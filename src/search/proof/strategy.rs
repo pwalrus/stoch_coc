@@ -1,8 +1,11 @@
 
-pub mod base;
+mod base;
 mod untypeabs;
 mod incontext;
 mod known_arrow;
 mod prod_elim;
-pub mod stratset;
+mod stratset;
+
+pub use self::base::{ProofStrat};
+pub use self::stratset::{standard_strategy};
 

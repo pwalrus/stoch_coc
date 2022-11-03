@@ -1,4 +1,5 @@
 
+mod util;
 mod model;
 mod parser;
 mod type_check;

@@ -2,7 +2,7 @@
 use crate::model::expression::CCExpression;
 use crate::model::judgement::{Judgement};
 use crate::model::statement::{Statement};
-use crate::model::rules::base::{DerRule, next_unused_var};
+use crate::model::rules::base::{DerRule};
 
 pub struct WeakRule {}
 
@@ -11,7 +11,7 @@ impl DerRule for WeakRule {
         if let Some(judge) = lhs {
             if let Some(t_judge) = rhs {
                 if t_judge.statement.s_type.is_sort() {
-                    let var = next_unused_var(&judge.context);
+                    let var = Statement::next_unused_var(&judge.context);
                     let stmt = Statement {
                         subject: CCExpression::Var(var),
                         s_type: t_judge.statement.subject.clone()
