@@ -36,10 +36,15 @@ pub fn find_term(s_type: &CCExpression, context: &[Statement], defs: &[Definitio
             let lines_o = out_partial.goals.last().unwrap();
             if let Goal::Final(lines) = lines_o {
                 let term: &CCExpression = &lines.last().unwrap().statement.subject;
+                println!("found term: {}", term.to_latex());
+
                 let full_lines = unpack_term(term, context, defs);
-                let refs_o = check_proof(&[], &full_lines);
+                if full_lines.is_err() {
+                    return Err(full_lines.unwrap_err());
+                }
+                let refs_o = check_proof(&[], &full_lines.as_ref().unwrap());
                 match refs_o {
-                    Ok(refs) => Ok(Proof { lines: full_lines.clone(), refs: refs }),
+                    Ok(refs) => Ok(Proof { lines: full_lines.as_ref().unwrap().to_vec(), refs: refs }),
                     Err(x) => {
                         println!("{}", lines.iter().map(|x| x.to_latex()).collect::<Vec<String>>().join("\n"));
                         Err(x)
@@ -103,4 +108,26 @@ mod tests {
             panic!();
         }
     }
+
+    /*
+    #[test]
+    fn find_and_elim_no_def() {
+        let jdg = parse_judgement("A : \\ast, B : \\ast \\vdash x : (A \\wedge B) \\to A").unwrap();
+        let t1 = jdg.statement.s_type.clone();
+        let stmt1 = jdg.context[0].clone();
+        let term = find_term(&t1, &[stmt1], &[]);
+
+        match term {
+            Ok(proof) => {
+                println!("proof good: {:?}", proof);
+                assert_eq!(proof.lines.last().unwrap().to_latex(), "");
+                panic!();
+            },
+            Err(msg) => {
+                println!("{}", msg);
+                panic!();
+            }
+        }
+    }
+    */
 }

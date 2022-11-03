@@ -10,6 +10,8 @@ pub struct SearchControl<T: Hash + Eq> {
 impl<T: Hash + Eq> SearchControl<T> {
 
     pub fn search(&self, start: T) -> Result<T, String> {
+        let limit = 1000000;
+        let mut count = 0;
         let mut queue = PriorityQueue::new();
         let w = self.model.weight(&start);
         queue.push(start, w);
@@ -24,6 +26,11 @@ impl<T: Hash + Eq> SearchControl<T> {
                 }
             } else {
                 return self.model.finalize(next.remove(done.unwrap().0));
+            }
+            if count > limit {
+                return Err(format!("reached limit of {}", limit));
+            } else {
+                count += 1;
             }
         }
         return Err("Exhausted all search options.".to_string());

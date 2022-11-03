@@ -16,7 +16,7 @@ impl ProofStrat for InContext {
                  _: &[Judgement],
                  defs: &[Definition]) -> Result<Vec<Goal>, String> {
 
-        let output: Vec<Goal> = context.iter().chain(inner_context).filter_map(
+        let output: Vec<Result<Goal, String>> = context.iter().chain(inner_context).filter_map(
             |stmt| if stmt.s_type == *ex {
                 Some(stmt.clone())
             } else {
@@ -24,11 +24,14 @@ impl ProofStrat for InContext {
             }
             ).map(|stmt| {
             let jdgs = unpack_term(&stmt.subject, &[context, inner_context].concat(), defs);
-            Goal::Final(jdgs)
+            match jdgs {
+                Ok(lst) => Ok(Goal::Final(lst)),
+                Err(msg) => Err(msg)
+            }
         }).collect();
 
-        if output.len() > 0 {
-            Ok(output)
+        if output.len() > 0 && !output.iter().any(|x| x.is_err()) {
+            Ok(output.iter().map(|x| x.as_ref().unwrap().clone()).collect())
         } else {
             Err(format!("not in context: {}", ex.to_latex()))
         }

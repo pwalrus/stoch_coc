@@ -82,8 +82,6 @@ impl ProofStrat for ProdElim {
         let prods = find_products(&full_context, &usable_conc);
         let matches = find_matches(&prods, &full_context, &usable_conc);
 
-        println!("matches: {:?}", matches);
-
         let goals: Vec<Goal> = matches.iter().map(
             |(arg, p, new_type)| make_goal(arg, p, new_type, ex, context, inner_context)
             ).collect();

@@ -4,21 +4,21 @@ use crate::model::expression::{CCExpression};
 use crate::model::def::{Definition};
 use crate::model::rules::base::{do_type_sub};
 
-fn unpack_star(_: &[Statement]) -> Vec<Judgement> {
+fn unpack_star(_: &[Statement]) -> Result<Vec<Judgement>, String> {
     let stmt = Statement {
         subject: CCExpression::Star,
         s_type: CCExpression::Sq
     };
 
-    return vec![Judgement {
+    return Ok(vec![Judgement {
         defs: vec![],
         statement: stmt,
         context: vec![]
-    }];
+    }]);
 }
 
 
-fn unpack_var(var: &str, context: &[Statement], defs: &[Definition]) -> Vec<Judgement> {
+fn unpack_var(var: &str, context: &[Statement], defs: &[Definition]) -> Result<Vec<Judgement>, String> {
     let v_type: Option<CCExpression> = context.iter().filter_map(
         |st| if st.subject.var_str() == Some(var.to_string()) {
             return Some(st.s_type.clone());
@@ -38,27 +38,35 @@ fn unpack_var(var: &str, context: &[Statement], defs: &[Definition]) -> Vec<Judg
                 return Some(st.clone());
             }).collect();
 
-        return [unpack_term(&stmt.s_type, &ctx2, defs), vec![Judgement {
+        let res_r = unpack_term(&stmt.s_type, &ctx2, defs);
+        if let Err(msg) = res_r { return Err(msg); }
+        return Ok([res_r.unwrap(), vec![Judgement {
             defs: vec![],
             statement: stmt,
             context: context.to_vec()
-        }]].concat();
+        }]].concat());
     }
-    return vec![];
+    return Err(format!("failed to unpack Var term: {}", var));
 }
 
 fn unpack_type_abs(var: &str, v_type: &CCExpression, ret: &CCExpression,
-                   context: &[Statement], defs: &[Definition]) -> Vec<Judgement> {
-    let p1: Vec<Judgement> = unpack_term(v_type, context, defs);
+                   context: &[Statement], defs: &[Definition]) -> Result<Vec<Judgement>, String> {
+    let p1_r = unpack_term(v_type, context, defs);
+
+    if let Err(msg) = p1_r { return Err(msg); }
+
+    let p1 = p1_r.unwrap();
+
     let stmt = Statement {
         subject: CCExpression::Var(var.to_string()),
         s_type: v_type.clone()
     };
     let new_ctx = [context, &vec![stmt]].concat();
-    let p2: Vec<Judgement> = unpack_term(ret, &new_ctx, defs);
-    if p1.len() == 0 || p2.len() == 0 {
-        return vec![];
-    }
+
+    let p2_r = unpack_term(ret, &new_ctx, defs);
+    if let Err(msg) = p2_r { return Err(msg); }
+    let p2 = p2_r.unwrap();
+
     let last = Judgement {
         defs: vec![],
         context: context.to_vec(),
@@ -70,8 +78,8 @@ fn unpack_type_abs(var: &str, v_type: &CCExpression, ret: &CCExpression,
         }
     };
 
-    return remove_dup(p1.iter().chain(p2.iter())
-                      .chain(std::iter::once(&last)));
+    return Ok(remove_dup(p1.iter().chain(p2.iter())
+                      .chain(std::iter::once(&last))));
 }
 
 fn def_arg_type_eq(def: &Definition, args: &Vec<Vec<Judgement>>) -> bool {
@@ -88,11 +96,15 @@ fn def_arg_type_eq(def: &Definition, args: &Vec<Vec<Judgement>>) -> bool {
 }
 
 fn unpack_def(name: &str, args: &[CCExpression],
-                   context: &[Statement], defs: &[Definition]) -> Vec<Judgement> {
+                   context: &[Statement], defs: &[Definition]) -> Result<Vec<Judgement>, String> {
 
-    let recur_args: Vec<Vec<Judgement>> = args.iter().map(
+    let recur_res: Vec<Result<Vec<Judgement>, String>> = args.iter().map(
         |x| unpack_term(x, context, defs)
         ).collect();
+    if recur_res.iter().any(|x| x.is_err()) {
+        return Err(recur_res.iter().find(|x| x.is_err()).as_ref().unwrap().as_ref().unwrap_err().to_string());
+    }
+    let recur_args: Vec<Vec<Judgement>> = recur_res.iter().map(|x| x.clone().unwrap()).collect();
     let curr_def_o: Option<&Definition> = defs.iter().find(
         |def| def.name == name && def.args.len() == args.len()
         && def_arg_type_eq(def, &recur_args));
@@ -111,23 +123,24 @@ fn unpack_def(name: &str, args: &[CCExpression],
                                     &known)
                 }
         };
-        return remove_dup(output.iter().chain(std::iter::once(&last)));
+        return Ok(remove_dup(output.iter().chain(std::iter::once(&last))));
     }
 
-    return vec![];
+    return Err(format!("failed to unpack Def term: {}", name));
 }
 
 fn unpack_abs(var: &str, v_type: &CCExpression, ret: &CCExpression,
-                   context: &[Statement], defs: &[Definition]) -> Vec<Judgement> {
+                   context: &[Statement], defs: &[Definition]) -> Result<Vec<Judgement>, String> {
     let c_stmt = Statement {
         subject: CCExpression::Var(var.to_string()),
         s_type: v_type.clone()
     };
 
-    let p1: Vec<Judgement> = unpack_term(ret,
-                                         &[context, &vec![c_stmt]].concat(),
-                                         defs);
-    if p1.len() == 0 { return vec![]; }
+    let p1_r = unpack_term(ret,
+                         &[context, &vec![c_stmt]].concat(),
+                         defs);
+    if let Err(msg) = p1_r { return Err(msg); }
+    let p1 = p1_r.unwrap();
 
     let new_type = CCExpression::TypeAbs(
         String::from(var),
@@ -135,8 +148,9 @@ fn unpack_abs(var: &str, v_type: &CCExpression, ret: &CCExpression,
         Box::new(p1.last().unwrap().statement.s_type.clone())
     );
 
-    let p2: Vec<Judgement> = unpack_term(&new_type, context, defs);
-    if p2.len() == 0 { return vec![]; }
+    let p2_r = unpack_term(&new_type, context, defs);
+    if let Err(msg) = p2_r { return Err(msg); }
+    let p2 = p2_r.unwrap();
 
     let last = Judgement {
         defs: vec![],
@@ -148,15 +162,20 @@ fn unpack_abs(var: &str, v_type: &CCExpression, ret: &CCExpression,
             s_type: new_type
         }
     };
-    return remove_dup(p1.iter().chain(&p2).chain(std::iter::once(&last)));
+    return Ok(remove_dup(p1.iter().chain(&p2).chain(std::iter::once(&last))));
 }
 
 fn unpack_appl(lhs: &CCExpression, rhs: &CCExpression,
-                   context: &[Statement], defs: &[Definition]) -> Vec<Judgement> {
-    let p1: Vec<Judgement> = unpack_term(lhs, context, defs);
-    let p2: Vec<Judgement> = unpack_term(rhs, context, defs);
+                   context: &[Statement], defs: &[Definition]) -> Result<Vec<Judgement>, String> {
+    let p1_r = unpack_term(lhs, context, defs);
+    let p2_r = unpack_term(rhs, context, defs);
 
-    if p1.len() == 0 || p2.len() == 0 { return vec![]; }
+    if let Err(msg) = p1_r { return Err(msg); }
+    if let Err(msg) = p2_r { return Err(msg); }
+
+    let p1 = p1_r.unwrap();
+    let p2 = p2_r.unwrap();
+
     let ret_type = p1.last().unwrap().statement.s_type.clone();
     if let CCExpression::TypeAbs(_x, _v_type, inner_ret) = ret_type {
         let last = Judgement {
@@ -169,9 +188,9 @@ fn unpack_appl(lhs: &CCExpression, rhs: &CCExpression,
             }
         };
 
-        return remove_dup(p2.iter().chain(&p1).chain(std::iter::once(&last)));
+        return Ok(remove_dup(p2.iter().chain(&p1).chain(std::iter::once(&last))));
     } else {
-        return vec![];
+        return Err(format!("failed to unpack Appl term: ({}) ({})", lhs.to_latex(), rhs.to_latex()));
     }
 }
 
@@ -190,12 +209,12 @@ where T: Iterator<Item= &'a Judgement>
 }
 
 
-pub fn unpack_term(term: &CCExpression, context: &[Statement], defs: &[Definition]) -> Vec<Judgement> {
+pub fn unpack_term(term: &CCExpression, context: &[Statement], defs: &[Definition]) -> Result<Vec<Judgement>, String> {
 
     match term {
         CCExpression::Star => unpack_star(context),
-        CCExpression::Sq => vec![],
-        CCExpression::Prim => vec![],
+        CCExpression::Sq => Err("Cannot unwrap Sq".to_string()),
+        CCExpression::Prim => Err("Cannot unwrap Prim".to_string()),
         CCExpression::Var(x) => unpack_var(&x, context, defs),
         CCExpression::Def(name, args) => unpack_def(&name, args, context, defs),
         CCExpression::Abs(x, v_type, ret) => unpack_abs(&x, &v_type, &ret, context, defs),
@@ -215,7 +234,7 @@ mod tests {
     fn simple_unpack() {
         let jdg: Judgement = parse_judgement("A:\\ast,a:A \\vdash a:A").unwrap();
         assert_eq!(jdg.to_latex(), "A : \\ast, a : A \\vdash a : A");
-        let lines = unpack_term(&jdg.statement.subject, &jdg.context, &[]);
+        let lines = unpack_term(&jdg.statement.subject, &jdg.context, &[]).unwrap();
 
         assert_eq!(lines.len(), 3);
 
@@ -234,7 +253,7 @@ mod tests {
     #[test]
     fn type_abs_unpack() {
         let jdg: Judgement = parse_judgement("A:\\ast \\vdash \\prod x : A . A : \\ast").unwrap();
-        let lines = unpack_term(&jdg.statement.subject, &jdg.context, &[]);
+        let lines = unpack_term(&jdg.statement.subject, &jdg.context, &[]).unwrap();
 
         let str_lines: Vec<String> = lines.iter().map(
             |x| x.to_latex()
@@ -252,7 +271,7 @@ mod tests {
     #[test]
     fn abs_unpack() {
         let jdg: Judgement = parse_judgement("A:\\ast \\vdash \\lambda x : A . x : \\ast").unwrap();
-        let lines = unpack_term(&jdg.statement.subject, &jdg.context, &[]);
+        let lines = unpack_term(&jdg.statement.subject, &jdg.context, &[]).unwrap();
 
         let str_lines: Vec<String> = lines.iter().map(
             |x| x.to_latex()
@@ -272,7 +291,7 @@ mod tests {
     #[test]
     fn appl_unpack() {
         let jdg: Judgement = parse_judgement("A:\\ast, y:A \\vdash (\\lambda x : A . x) y : \\ast").unwrap();
-        let lines = unpack_term(&jdg.statement.subject, &jdg.context, &[]);
+        let lines = unpack_term(&jdg.statement.subject, &jdg.context, &[]).unwrap();
 
         let str_lines: Vec<String> = lines.iter().map(
             |x| x.to_latex()
@@ -299,7 +318,7 @@ mod tests {
             ).unwrap()];
         let jdg: Judgement = parse_judgement(
             "I:\\ast, q:I \\vdash (id \\langle I \\rangle) q : I").unwrap();
-        let lines = unpack_term(&jdg.statement.subject, &jdg.context, &defs);
+        let lines = unpack_term(&jdg.statement.subject, &jdg.context, &defs).unwrap();
         let str_lines: Vec<String> = lines.iter().map(
             |x| x.to_latex()
             ).collect();
