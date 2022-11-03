@@ -39,7 +39,9 @@ fn unpack_var(var: &str, context: &[Statement], defs: &[Definition]) -> Result<V
             }).collect();
 
         let res_r = unpack_term(&stmt.s_type, &ctx2, defs);
-        if let Err(msg) = res_r { return Err(msg); }
+        if let Err(msg) = res_r {
+            return Err(format!("While unpacking Var ({}), other error:\n\t{}", stmt.s_type.to_latex(), msg));
+        }
         return Ok([res_r.unwrap(), vec![Judgement {
             defs: vec![],
             statement: stmt,
@@ -64,7 +66,7 @@ fn unpack_type_abs(var: &str, v_type: &CCExpression, ret: &CCExpression,
     let new_ctx = [context, &vec![stmt]].concat();
 
     let p2_r = unpack_term(ret, &new_ctx, defs);
-    if let Err(msg) = p2_r { return Err(msg); }
+    if let Err(msg) = p2_r { return Err(format!("While unpacking TypeAbs ({}/{}/{}), other error:\n\t{}", var, v_type.to_latex(), ret.to_latex(), msg)); }
     let p2 = p2_r.unwrap();
 
     let last = Judgement {
@@ -102,7 +104,7 @@ fn unpack_def(name: &str, args: &[CCExpression],
         |x| unpack_term(x, context, defs)
         ).collect();
     if recur_res.iter().any(|x| x.is_err()) {
-        return Err(recur_res.iter().find(|x| x.is_err()).as_ref().unwrap().as_ref().unwrap_err().to_string());
+        return Err(format!("While unpacking Def ({}), other error:\n\t{}", name, recur_res.iter().find(|x| x.is_err()).as_ref().unwrap().as_ref().unwrap_err().to_string()));
     }
     let recur_args: Vec<Vec<Judgement>> = recur_res.iter().map(|x| x.clone().unwrap()).collect();
     let curr_def_o: Option<&Definition> = defs.iter().find(
@@ -139,7 +141,7 @@ fn unpack_abs(var: &str, v_type: &CCExpression, ret: &CCExpression,
     let p1_r = unpack_term(ret,
                          &[context, &vec![c_stmt]].concat(),
                          defs);
-    if let Err(msg) = p1_r { return Err(msg); }
+    if let Err(msg) = p1_r { return Err(format!("While unpacking Abs ({}/{}/{}), other error:\n\t{}", var, v_type.to_latex(), ret.to_latex(), msg)); }
     let p1 = p1_r.unwrap();
 
     let new_type = CCExpression::TypeAbs(
@@ -149,7 +151,7 @@ fn unpack_abs(var: &str, v_type: &CCExpression, ret: &CCExpression,
     );
 
     let p2_r = unpack_term(&new_type, context, defs);
-    if let Err(msg) = p2_r { return Err(msg); }
+    if let Err(msg) = p2_r { return Err(format!("While unpacking Abs ({}/{}/{}), other error:\n\t{}", var, v_type.to_latex(), ret.to_latex(), msg)); }
     let p2 = p2_r.unwrap();
 
     let last = Judgement {
@@ -170,8 +172,12 @@ fn unpack_appl(lhs: &CCExpression, rhs: &CCExpression,
     let p1_r = unpack_term(lhs, context, defs);
     let p2_r = unpack_term(rhs, context, defs);
 
-    if let Err(msg) = p1_r { return Err(msg); }
-    if let Err(msg) = p2_r { return Err(msg); }
+    if let Err(msg) = p1_r { return Err(format!(
+                "While unpacking Appl({}/{}), other error:\n\t{}",
+                lhs.to_latex(), rhs.to_latex(), msg)); }
+    if let Err(msg) = p2_r { return Err(format!(
+                "While unpacking Appl({}/{}), other error:\n\t{}",
+                lhs.to_latex(), rhs.to_latex(), msg)); }
 
     let p1 = p1_r.unwrap();
     let p2 = p2_r.unwrap();
@@ -332,5 +338,24 @@ mod tests {
         let refs = check_proof(&defs, &lines).unwrap();
         assert_eq!(lines.len(), refs.len());
     }
+
+    /*
+    #[test]
+    fn and_unpack() {
+        let defs = vec![];
+        let jdg: Judgement = parse_judgement(
+            "E:\\ast, F:\\ast, x: E \\wedge F \\vdash x : E \\wedge F").unwrap();
+        let lines = unpack_term(&jdg.statement.subject, &jdg.context, &defs).unwrap();
+        let str_lines: Vec<String> = lines.iter().map(
+            |x| x.to_latex()
+            ).collect();
+        assert_eq!(str_lines,
+                   ["\\vdash \\ast : \\square",
+                   "E : \\ast, F : \\ast, x : E \\wedge F \\vdash x : E \\wedge F"
+                   ]);
+        let refs = check_proof(&defs, &lines).unwrap();
+        assert_eq!(lines.len(), refs.len());
+    }
+    */
 }
 
