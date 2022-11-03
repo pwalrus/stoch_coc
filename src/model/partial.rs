@@ -44,15 +44,20 @@ pub enum Goal {
 
 impl Goal {
     pub fn to_latex(&self) -> String {
+        self.to_latex_ind(0)
+    }
+
+    pub fn to_latex_ind(&self, indent: u32) -> String {
+        let ind: String = " ".repeat(indent as usize);
         match self {
-            Goal::Initial(ex, _) => format!("?? : {}", ex.to_latex()),
+            Goal::Initial(ex, _) => format!("{}?? : {}", ind, ex.to_latex()),
             Goal::Unpacked(_, ex, lst, _) => {
-                lst.iter().map(|x| x.to_latex()
+                lst.iter().map(|x| x.to_latex_ind(indent + 1)
                                ).collect::<Vec<String>>().join("\n") +
-                    "\n" + &format!("?? : {}", ex.to_latex())
+                    "\n" + &format!("{}?? : {}", ind, ex.to_latex())
             },
             Goal::Final(lst) => {
-                lst.iter().map(|x| x.to_latex()
+                lst.iter().map(|x| format!("{}{}", ind, x.to_latex())
                                ).collect::<Vec<String>>().join("\n")
             }
         }
@@ -200,15 +205,15 @@ mod tests {
         ], vec![]);
         let g3 = g2.replace(&Goal::Initial(t1.clone(), vec![]), &Goal::Initial(t2.clone(), vec![]));
         assert_eq!(g1.to_latex(), "?? : A \\to A");
-        assert_eq!(g2.to_latex(), "?? : A\n?? : A \\to A");
-        assert_eq!(g3.to_latex(), "?? : A \\to A\n?? : A \\to A");
+        assert_eq!(g2.to_latex(), " ?? : A\n?? : A \\to A");
+        assert_eq!(g3.to_latex(), " ?? : A \\to A\n?? : A \\to A");
         let partial = PartialSol{
             context: vec![stmt1],
             goals: vec![g2]
         };
         let partial2 = partial.replace(&Goal::Initial(t1.clone(), vec![]), &Goal::Initial(t2.clone(), vec![]));
-        assert_eq!(partial.to_latex(), "A : \\ast\n?? : A\n?? : A \\to A");
-        assert_eq!(partial2.to_latex(), "A : \\ast\n?? : A \\to A\n?? : A \\to A");
+        assert_eq!(partial.to_latex(), "A : \\ast\n ?? : A\n?? : A \\to A");
+        assert_eq!(partial2.to_latex(), "A : \\ast\n ?? : A \\to A\n?? : A \\to A");
         assert_eq!(partial.count(), GoalCount {i: 1, u: 1, f:0});
         assert_eq!(partial2.count(), GoalCount {i: 1, u: 1, f:0});
         let act = partial.active();
