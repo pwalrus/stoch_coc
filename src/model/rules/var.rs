@@ -51,6 +51,23 @@ impl DerRule for VarRule {
     }
 
     fn sig_size(&self) -> u32 { return 1; }
+
+    fn validate(&self, lhs: Option<&Judgement>, rhs: Option<&Judgement>,
+                    result: &Judgement) -> bool {
+        if let Some(j) = self.apply(lhs, rhs) {
+            if j.alpha_equiv(&result) {
+                return true;
+            }
+        }
+        if let Some(lex) = lhs {
+            let new_ctx = [lex.context.to_vec(), vec![result.statement.clone()]].concat();
+            if result.statement.s_type == CCExpression::Star && result.context == new_ctx {
+                return true;
+            }
+        }
+
+        false
+    }
 }
 
 #[cfg(test)]
@@ -76,5 +93,29 @@ mod tests {
         if let Some(x) = output {
             assert_eq!(&x.to_latex(), "a : A \\vdash a : A");
         }
+    }
+
+    #[test]
+    fn double_var_check() {
+        let rule = VarRule {};
+        let stmt = Statement {
+            subject: CCExpression::Var(String::from("A")),
+            s_type: CCExpression::Star
+        };
+        let stmt1 = Statement {
+            subject: CCExpression::Var(String::from("B")),
+            s_type: CCExpression::Star
+        };
+        let jdg1 = Judgement {
+            defs: vec![],
+            context: vec![stmt.clone()],
+            statement: stmt.clone()
+        };
+        let jdg2 = Judgement {
+            defs: vec![],
+            context: vec![stmt.clone(), stmt1.clone()],
+            statement: stmt1.clone()
+        };
+        assert!(rule.validate(Some(&jdg1), None, &jdg2));
     }
 }
