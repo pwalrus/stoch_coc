@@ -32,6 +32,23 @@ impl DerRule for WeakRule {
     }
     
     fn sig_size(&self) -> u32 { return 2; }
+
+    fn validate(&self, lhs: Option<&Judgement>, rhs: Option<&Judgement>,
+                    result: &Judgement) -> bool {
+        if let Some(lex) = lhs {
+            if let Some(rex) = rhs {
+                if !rex.statement.s_type.is_sort() { return false; }
+                if lex.statement != result.statement { return false; }
+                if result.context.len() == 0 || result.context.last().unwrap().s_type != rex.statement.subject {
+                    return false;
+                }
+                if !lex.context.iter().all(|stmt| result.context.contains(stmt)) { return false; }
+                return true;
+            }
+        }
+        false
+    }
+
 }
 
 #[cfg(test)]
@@ -39,7 +56,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn tokenize_sort() {
+    fn simple_weak() {
         let rule = WeakRule {};
         let stmt1 = Statement {
             subject: CCExpression::Var(String::from("A")),
@@ -66,5 +83,47 @@ mod tests {
         } else {
             panic!();
         }
+    }
+
+    #[test]
+    fn bigger_weak_test() {
+        let rule = WeakRule {};
+        let stmt0 = Statement {
+            subject: CCExpression::Star,
+            s_type: CCExpression::Sq
+        };
+        let stmt1 = Statement {
+            subject: CCExpression::Var(String::from("a")),
+            s_type: CCExpression::Var(String::from("A"))
+        };
+        let stmt2 = Statement {
+            subject: CCExpression::Var(String::from("C")),
+            s_type: CCExpression::Star
+        };
+        let stmt3 = Statement {
+            subject: CCExpression::Var(String::from("A")),
+            s_type: CCExpression::Star
+        };
+        let stmt4 = Statement {
+            subject: CCExpression::Var(String::from("B")),
+            s_type: CCExpression::Star
+        };
+        let jdg1 = Judgement {
+            defs: vec![],
+            context: vec![stmt3.clone(), stmt1.clone()],
+            statement: stmt1.clone()
+        };
+        let jdg2 = Judgement {
+            defs: vec![],
+            context: vec![stmt3.clone(), stmt1.clone(), stmt2.clone(), stmt4.clone()],
+            statement: stmt1.clone()
+        };
+        let jdg3 = Judgement {
+            defs: vec![],
+            context: vec![],
+            statement: stmt0.clone()
+        };
+
+        assert!(rule.validate(Some(&jdg1), Some(&jdg3), &jdg2));
     }
 }
