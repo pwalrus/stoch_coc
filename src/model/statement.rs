@@ -35,6 +35,29 @@ impl Statement {
         next_unused_cap_var(&used)
     }
 
+    pub fn abstractions(ex: &CCExpression) -> Vec<Statement> {
+        match ex {
+            CCExpression::Application(lhs, rhs) => {
+                [Statement::abstractions(&lhs), Statement::abstractions(&rhs)].concat()
+            },
+            CCExpression::Abs(arg, a_type, ret) => {
+                [
+                    vec![Statement {subject: CCExpression::Var(arg.to_string()), s_type: *a_type.clone()}],
+                    Statement::abstractions(a_type),
+                    Statement::abstractions(ret)
+                ].concat()
+            },
+            CCExpression::TypeAbs(arg, a_type, ret) => {
+                [
+                    vec![Statement {subject: CCExpression::Var(arg.to_string()), s_type: *a_type.clone()}],
+                    Statement::abstractions(a_type),
+                    Statement::abstractions(ret)
+                ].concat()
+            },
+            _ => vec![]
+        }
+    }
+
     pub fn to_latex(&self) -> String {
         return self.subject.to_latex() + " : " + &self.s_type.to_latex()
     }
@@ -63,5 +86,26 @@ mod tests {
         let stmt = Statement { subject: expr1, s_type: expr2 };
         assert_eq!(stmt.to_latex(), String::from("banana : A"));
         assert_eq!(stmt.primative(), false);
+    }
+
+    #[test]
+    fn test_abstractions() {
+        let expr1 = CCExpression::Var(String::from("A"));
+        let expr2 = CCExpression::Var(String::from("x"));
+        let expr3 = CCExpression::Abs("x".to_string(), Box::new(expr1.clone()), Box::new(expr2.clone()));
+        let expr4 = CCExpression::TypeAbs("x".to_string(), Box::new(expr1.clone()), Box::new(expr1.clone()));
+        let expr5 = CCExpression::Application(Box::new(expr3.clone()), Box::new(expr2.clone()));
+
+        let stmt = Statement {
+            subject: expr2.clone(),
+            s_type: expr1.clone()
+        };
+
+        assert_eq!(Statement::abstractions(&expr1), []);
+        assert_eq!(Statement::abstractions(&CCExpression::Star), []);
+        assert_eq!(Statement::abstractions(&CCExpression::Sq), []);
+        assert_eq!(Statement::abstractions(&expr3), [stmt.clone()]);
+        assert_eq!(Statement::abstractions(&expr4), [stmt.clone()]);
+        assert_eq!(Statement::abstractions(&expr5), [stmt.clone()]);
     }
 }
