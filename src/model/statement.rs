@@ -10,6 +10,10 @@ pub struct Statement {
 
 impl Statement {
 
+    pub fn ctx_str(context: &[Statement]) -> String {
+       context.iter().map(|x| x.to_latex()).collect::<Vec<String>>().join(", ")
+    }
+
     pub fn next_unused_var(context: &[Statement]) -> String {
         let used: Vec<String> = context.iter().filter_map(|stmt| {
             match &stmt.subject {

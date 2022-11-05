@@ -43,18 +43,15 @@ impl Judgement {
     }
 
     pub fn to_latex(&self) -> String {
-        let output = self.context.iter().map(
-                |x| x.to_latex()
-            ).reduce(
-                |a, b| a + ", " + &b
-            );
+        let output = Statement::ctx_str(&self.context);
 
         let stmt = String::from("\\vdash ") + &self.statement.to_latex(); 
            
-        return match output {
-            Some(x) => x + " " + &stmt,
-            None => stmt
-        };
+        if output.len() > 0 {
+            output + " " + &stmt
+        } else {
+            stmt
+        }
     }
 
     pub fn alpha_equiv(&self, rhs: &Judgement) -> bool {
