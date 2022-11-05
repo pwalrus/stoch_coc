@@ -63,7 +63,7 @@ impl Statement {
     }
 
     pub fn alpha_equiv(&self, rhs: &Statement) -> bool {
-        return self.subject.alpha_equiv(&rhs.subject);
+        return self.subject.alpha_equiv(&rhs.subject) && self.s_type.alpha_equiv(&rhs.s_type);
     }
 
     pub fn primative(&self) -> bool {

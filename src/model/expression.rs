@@ -518,6 +518,8 @@ mod tests {
                                           Box::new(expr2),
                                           Box::new(expr3));
         assert_eq!(expr4.to_latex(), "\\prod potato : A . avocado potato");
+        assert_eq!(expr4.substitute("potato", &CCExpression::Var("q".to_string())).to_latex(),
+        "\\prod potato : A . avocado potato");
     }
 
     #[test]

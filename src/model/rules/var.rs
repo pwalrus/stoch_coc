@@ -54,14 +54,14 @@ impl DerRule for VarRule {
 
     fn validate(&self, lhs: Option<&Judgement>, rhs: Option<&Judgement>,
                     result: &Judgement) -> bool {
-        if let Some(j) = self.apply(lhs, rhs) {
-            if j.alpha_equiv(&result) {
-                return true;
-            }
-        }
+        if let Some(_) = rhs { return false; }
         if let Some(lex) = lhs {
+            if result.context.len() != lex.context.len() + 1 {return false; }
             let new_ctx = [lex.context.to_vec(), vec![result.statement.clone()]].concat();
-            if result.statement.s_type == CCExpression::Star && result.context == new_ctx {
+            let has_type = lex.context.iter().any(|stmt| stmt.subject.alpha_equiv(&result.statement.s_type)) || lex.statement.subject.alpha_equiv(&result.statement.s_type);
+
+            if (has_type || result.statement.s_type == CCExpression::Star)
+                && result.context.iter().zip(&new_ctx).all(|(x, y)| x.alpha_equiv(y)) {
                 return true;
             }
         }

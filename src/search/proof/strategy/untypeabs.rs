@@ -15,7 +15,8 @@ impl ProofStrat for UnpackTypeAbs {
                  _: &[Judgement],
                  _: &[Definition]) -> Result<Vec<Goal>, String> {
         if let CCExpression::TypeAbs(var, a_type, ret) = ex {
-            let new_var = Statement::next_unused_var(&[context, inner_context].concat());
+            let absts = Statement::abstractions(ex);
+            let new_var = Statement::next_unused_var(&[context, inner_context, &absts].concat());
             let new_stmt = Statement {
                 subject: CCExpression::Var(new_var.to_string()),
                 s_type: *a_type.clone()

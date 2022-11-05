@@ -36,7 +36,6 @@ pub fn find_term(s_type: &CCExpression, context: &[Statement], defs: &[Definitio
             let lines_o = out_partial.goals.last().unwrap();
             if let Goal::Final(lines) = lines_o {
                 let term: &CCExpression = &lines.last().unwrap().statement.subject;
-                println!("found term: {}", term.to_latex());
 
                 let full_lines = unpack_term(term, context, defs);
                 if full_lines.is_err() {
@@ -87,7 +86,7 @@ mod tests {
 
     #[test]
     fn find_on_easy_tautology() {
-        let jdg = parse_judgement("A : \\ast \\vdash \\lambda a : A . a : A \\to A").unwrap();
+        let jdg = parse_judgement("A : \\ast \\vdash \\lambda b : A . b : A \\to A").unwrap();
         let t1 = jdg.statement.s_type.clone();
         let stmt1 = jdg.context[0].clone();
         let term = find_term(&t1, &[stmt1], &[]);
@@ -101,7 +100,7 @@ mod tests {
                         "A : \\ast, a : A \\vdash a : A",
                         "A : \\ast, a : A \\vdash A : \\ast",
                         "A : \\ast \\vdash A \\to A : \\ast",
-                        "A : \\ast \\vdash \\lambda a : A . a : A \\to A"
+                        "A : \\ast \\vdash \\lambda b : A . b : A \\to A"
                        ]);
         } else {
             println!("term not found: {:?}", term);

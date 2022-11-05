@@ -351,7 +351,9 @@ struct VeeWedgeConsumer {}
 impl VeeWedgeConsumer {
 
     fn fab_arrow_type(lhs: &CCExpression, rhs: &CCExpression) -> CCExpression {
-        let var = next_unused_var(&rhs.free_var());
+        let absts = Statement::abstractions(rhs);
+        let a_terms: Vec<String> = absts.iter().map(|stmt| stmt.subject.to_latex()).collect();
+        let var = next_unused_var(&[rhs.free_var(), a_terms].concat());
         let expr = CCExpression::TypeAbs(
             var.to_string(),
             Box::new(lhs.clone()),

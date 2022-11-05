@@ -56,6 +56,29 @@ impl DerRule for FormRule {
     }
     
     fn sig_size(&self) -> u32 { return 2; }
+
+    fn validate(&self, lhs: Option<&Judgement>, rhs: Option<&Judgement>,
+                    result: &Judgement) -> bool {
+        if let Some(lex) = lhs {
+            if !lex.statement.s_type.is_sort() { return false; }
+            if let Some(rex) = rhs {
+                if !rex.statement.s_type.is_sort() { return false; }
+                match (&result.statement.subject, &result.statement.s_type) {
+                    (CCExpression::TypeAbs(arg, a_type, ret), CCExpression::Star) => {
+                        if **a_type != lex.statement.subject { return false; }
+                        if rex.context.len() != result.context.len() + 1 { return false; }
+                        let last_stmt = rex.context.last().unwrap();
+                        if last_stmt.s_type != **a_type { return false; }
+                        if !ret.substitute(arg, &last_stmt.subject).alpha_equiv(&rex.statement.subject) { return false; }
+                        if !Statement::weaker_eq(&rex.context, &result.context) { return false; }
+                        return true;
+                    },
+                    _ => { return false; }
+                }
+            }
+        }
+        false
+    }
 }
 
 #[cfg(test)]
