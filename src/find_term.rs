@@ -45,7 +45,7 @@ pub fn find_term(s_type: &CCExpression, context: &[Statement], defs: &[Definitio
                 match refs_o {
                     Ok(refs) => Ok(Proof { lines: full_lines.as_ref().unwrap().to_vec(), refs: refs }),
                     Err(x) => {
-                        println!("{}", lines.iter().map(|x| x.to_latex()).collect::<Vec<String>>().join("\n"));
+                        println!("lines failed check:\n{}", full_lines.as_ref().unwrap().iter().map(|x| x.to_latex()).collect::<Vec<String>>().join("\n"));
                         Err(x)
                     }
                 }
@@ -108,25 +108,21 @@ mod tests {
         }
     }
 
-    /*
     #[test]
     fn find_and_elim_no_def() {
         let jdg = parse_judgement("A : \\ast, B : \\ast \\vdash x : (A \\wedge B) \\to A").unwrap();
         let t1 = jdg.statement.s_type.clone();
-        let stmt1 = jdg.context[0].clone();
-        let term = find_term(&t1, &[stmt1], &[]);
+        let term = find_term(&t1, &jdg.context, &[]);
 
         match term {
             Ok(proof) => {
-                println!("proof good: {:?}", proof);
-                assert_eq!(proof.lines.last().unwrap().to_latex(), "");
-                panic!();
+                assert_eq!(proof.lines.last().unwrap().to_latex(),
+                "A : \\ast, B : \\ast \\vdash \\lambda c : A \\wedge B . c A (\\lambda d : A . \\lambda b : B . d) : (A \\wedge B) \\to A");
             },
             Err(msg) => {
-                println!("{}", msg);
+                println!("err: {}", msg);
                 panic!();
             }
         }
     }
-    */
 }
