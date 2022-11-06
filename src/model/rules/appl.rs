@@ -10,9 +10,9 @@ impl DerRule for ApplRule {
     fn apply(&self, lhs: Option<&Judgement>, rhs: Option<&Judgement>) -> Option<Judgement> {
         if let Some(f_jdg) = lhs {
             if let Some(a_jdg) = rhs {
-                if let CCExpression::TypeAbs(_ph, a_type, r_type) = 
+                if let CCExpression::TypeAbs(ph, a_type, r_type) =
                     &f_jdg.statement.s_type {
-                    if **a_type != a_jdg.statement.s_type {
+                    if !a_type.alpha_equiv(&a_jdg.statement.s_type) {
                         return None;
                     }
                     let stmt = Statement {
@@ -20,7 +20,7 @@ impl DerRule for ApplRule {
                                      Box::new(f_jdg.statement.subject.clone()),
                                      Box::new(a_jdg.statement.subject.clone())
                                      ),
-                        s_type: *r_type.clone()
+                        s_type: r_type.substitute(ph, &a_jdg.statement.subject)
                     };
                     return Some(Judgement {
                         defs: f_jdg.defs.clone(),
@@ -36,7 +36,7 @@ impl DerRule for ApplRule {
     fn name(&self) -> String {
         return String::from("appl");
     }
-    
+
     fn sig_size(&self) -> u32 { return 2; }
 }
 

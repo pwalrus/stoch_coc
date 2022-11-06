@@ -38,8 +38,8 @@ impl DerRule for WeakRule {
         if let Some(lex) = lhs {
             if let Some(rex) = rhs {
                 if !rex.statement.s_type.is_sort() { return false; }
-                if lex.statement != result.statement { return false; }
-                if result.context.len() == 0 || result.context.last().unwrap().s_type != rex.statement.subject {
+                if !lex.statement.alpha_equiv(&result.statement) { return false; }
+                if result.context.len() == 0 || !result.context.last().unwrap().s_type.alpha_equiv(&rex.statement.subject) {
                     return false;
                 }
                 if !lex.context.iter().all(|stmt| result.context.contains(stmt)) { return false; }

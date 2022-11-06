@@ -4,7 +4,6 @@ use crate::model::judgement::{Judgement};
 use crate::model::expression::{CCExpression};
 use crate::model::def::{Definition};
 use crate::model::partial::{Goal};
-use crate::unpack_term::{unpack_term};
 use super::base::{ProofStrat};
 
 pub struct InContext {}
@@ -14,7 +13,7 @@ impl ProofStrat for InContext {
                  context: &[Statement],
                  inner_context: &[Statement],
                  _: &[Judgement],
-                 defs: &[Definition]) -> Result<Vec<Goal>, String> {
+                 _: &[Definition]) -> Result<Vec<Goal>, String> {
 
         let output: Vec<Result<Goal, String>> = context.iter().chain(inner_context).filter_map(
             |stmt| if stmt.s_type == *ex {
@@ -23,11 +22,14 @@ impl ProofStrat for InContext {
                 None
             }
             ).map(|stmt| {
-            let jdgs = unpack_term(&stmt.subject, &[context, inner_context].concat(), defs);
-            match jdgs {
-                Ok(lst) => Ok(Goal::Final(lst)),
-                Err(msg) => Err(msg)
-            }
+            let jdgs = vec![
+                Judgement {
+                    statement: stmt.clone(),
+                    context: [context, inner_context].concat(),
+                    defs: vec![]
+                }
+            ];
+            Ok(Goal::Final(jdgs))
         }).collect();
 
         if output.len() > 0 && !output.iter().any(|x| x.is_err()) {

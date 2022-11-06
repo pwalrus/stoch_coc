@@ -276,6 +276,13 @@ impl CCExpression {
 
     }
 
+    pub fn is_var(&self) -> bool {
+        match self {
+            CCExpression::Var(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn is_sort(&self) -> bool {
         match self {
             CCExpression::Star => true,

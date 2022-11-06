@@ -104,6 +104,7 @@ pub fn check_proof(defs: &[Definition],
 mod tests {
     use super::*;
     use crate::parser::{parse_judgement, parse_definition};
+    use crate::model::rules::ruleset::all_rules;
 
     #[test]
     fn simple_type_check() {
@@ -227,6 +228,54 @@ mod tests {
             "A : \\ast, x : A \\vdash \\lambda b : A . x : A \\to A"
         );
 
+    }
+
+    #[test]
+    fn direct_weak_test() {
+        let rules = all_rules(&[]);
+        let rule = rules.iter().find(|x| x.name() == "weak").unwrap();
+        let jdg1: Judgement = parse_judgement(
+            "A : \\ast \\vdash A : \\ast").unwrap();
+        let jdg2: Judgement = parse_judgement(
+        "A : \\ast, B : \\ast \\vdash A \\wedge B : \\ast").unwrap();
+        let jdg3: Judgement = parse_judgement(
+            "A : \\ast, B : \\ast, a : A \\wedge B \\vdash A : \\ast"
+        ).unwrap();
+
+        assert!(rule.validate(Some(&jdg1), Some(&jdg2), &jdg3));
+    }
+
+    #[test]
+    fn direct_appl_test() {
+        let rules = all_rules(&[]);
+        let rule = rules.iter().find(|x| x.name() == "appl").unwrap();
+        let jdg1: Judgement = parse_judgement(
+            "A : \\ast, B : \\ast, a : A \\wedge B \\vdash a : A \\wedge B"
+            ).unwrap();
+        let jdg2: Judgement = parse_judgement(
+            "A : \\ast, B : \\ast, a : A \\wedge B \\vdash A : \\ast"
+            ).unwrap();
+        let jdg3: Judgement = parse_judgement(
+            "A : \\ast, B : \\ast, a : A \\wedge B \\vdash a A : (A \\to B \\to A) \\to A"
+            ).unwrap();
+
+        assert!(rule.validate(Some(&jdg1), Some(&jdg2), &jdg3));
+    }
+
+    #[test]
+    fn direct_form_test() {
+        let rules = all_rules(&[]);
+        let rule = rules.iter().find(|x| x.name() == "form").unwrap();
+        let jdg1: Judgement = parse_judgement(
+            "A : \\ast, B : \\ast \\vdash A \\wedge B : \\ast"
+            ).unwrap();
+        let jdg2: Judgement = parse_judgement(
+            "A : \\ast, B : \\ast, a : A \\wedge B \\vdash A : \\ast"
+            ).unwrap();
+        let jdg3: Judgement = parse_judgement(
+            "A : \\ast, B : \\ast \\vdash (A \\wedge B) \\to A : \\ast"
+            ).unwrap();
+        assert!(rule.validate(Some(&jdg1), Some(&jdg2), &jdg3));
     }
 }
 

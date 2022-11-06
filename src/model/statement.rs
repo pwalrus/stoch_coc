@@ -10,6 +10,10 @@ pub struct Statement {
 
 impl Statement {
 
+    pub fn subject_in_context(ex: &CCExpression, context: &[Statement]) -> bool {
+        context.iter().any(|stmt| stmt.subject.alpha_equiv(ex))
+    }
+
     pub fn ctx_str(context: &[Statement]) -> String {
        context.iter().map(|x| x.to_latex()).collect::<Vec<String>>().join(", ")
     }

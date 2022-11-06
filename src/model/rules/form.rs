@@ -65,10 +65,10 @@ impl DerRule for FormRule {
                 if !rex.statement.s_type.is_sort() { return false; }
                 match (&result.statement.subject, &result.statement.s_type) {
                     (CCExpression::TypeAbs(arg, a_type, ret), CCExpression::Star) => {
-                        if **a_type != lex.statement.subject { return false; }
+                        if !a_type.alpha_equiv(&lex.statement.subject) { return false; }
                         if rex.context.len() != result.context.len() + 1 { return false; }
                         let last_stmt = rex.context.last().unwrap();
-                        if last_stmt.s_type != **a_type { return false; }
+                        if !last_stmt.s_type.alpha_equiv(a_type) { return false; }
                         if !ret.substitute(arg, &last_stmt.subject).alpha_equiv(&rex.statement.subject) { return false; }
                         if !Statement::weaker_eq(&rex.context, &result.context) { return false; }
                         return true;

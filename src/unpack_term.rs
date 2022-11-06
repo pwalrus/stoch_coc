@@ -4,33 +4,41 @@ use crate::model::expression::{CCExpression};
 use crate::model::def::{Definition};
 use crate::model::rules::base::{do_type_sub};
 
-fn unpack_remaining_context(ctx: &[Statement]) -> Result<Vec<Judgement>, String> {
+fn unpack_remaining_context(ctx: &[Statement], defs: &[Definition]) -> Result<Vec<Judgement>, String> {
     if ctx.len() == 0 { return Ok(vec![]); }
+    let current = (*ctx.last().as_ref().unwrap()).clone();
     let last = Judgement {
         defs: vec![],
         context: ctx.to_vec(),
-        statement: (*ctx.last().as_ref().unwrap()).clone()
+        statement: current.clone()
+    };
+    let remainder = ctx[0..ctx.len()-1].to_vec();
+
+    let other = unpack_remaining_context(&remainder, defs);
+
+    let extra_type = if current.subject.is_var()
+        && (Statement::subject_in_context(&current.s_type, ctx) || current.s_type.is_sort())  {
+            Ok(vec![])
+    } else {
+        unpack_term(&current.s_type, &ctx[0..ctx.len()-1], defs)
     };
 
-    // println!("last ({}) of ctx ({})", last.statement.to_latex(), ctx.iter().map(|x| x.to_latex()).collect::<Vec<String>>().join(", "));
-    let other = unpack_remaining_context(&ctx[0..ctx.len()-1]);
-
-    match other {
-        Ok(lst) => Ok([lst, vec![last]].concat()),
-        Err(msg) => Err(msg)
+    match (other, extra_type) {
+        (Ok(lst), Ok(ext)) => Ok([lst, ext, vec![last]].concat()),
+        (Err(msg), _) => Err(msg),
+        (_, Err(msg)) => Err(msg),
     }
 }
 
 
-fn unpack_star(context: &[Statement]) -> Result<Vec<Judgement>, String> {
+fn unpack_star(context: &[Statement], defs: &[Definition]) -> Result<Vec<Judgement>, String> {
     let stmt = Statement {
         subject: CCExpression::Star,
         s_type: CCExpression::Sq
     };
 
-    let remaining = unpack_remaining_context(context);
+    let remaining = unpack_remaining_context(context, defs);
 
-    // println!("star on ctx ({})", context.iter().map(|x| x.to_latex()).collect::<Vec<String>>().join(", "));
     match remaining {
         Ok(lst) => Ok([vec![Judgement { defs: vec![], statement: stmt, context: vec![] }], lst].concat()),
         Err(msg) => Err(msg)
@@ -65,7 +73,8 @@ fn unpack_var(var: &str, context: &[Statement], defs: &[Definition]) -> Result<V
 
         let res_r = unpack_term(&stmt.s_type, &ctx2, defs);
         if let Err(msg) = res_r {
-            return Err(format!("While unpacking Var ({}), other error:\n\t{}", stmt.s_type.to_latex(), msg));
+            let ctx_str = Statement::ctx_str(&ctx2);
+            return Err(format!("While unpacking Var ({}), ctx2: [{}], other error:\n\t{}", stmt.s_type.to_latex(), ctx_str, msg));
         }
         return Ok([res_r.unwrap(), vec![Judgement {
             defs: vec![],
@@ -75,7 +84,7 @@ fn unpack_var(var: &str, context: &[Statement], defs: &[Definition]) -> Result<V
     }
     return Err(format!("failed to unpack Var term: {}, context: [{}]",
                        var,
-                       context.iter().map(|x| x.to_latex()).collect::<Vec<String>>().join(", ")
+                       Statement::ctx_str(&context)
                        ));
 }
 
@@ -85,7 +94,10 @@ fn unpack_type_abs(var: &str, v_type: &CCExpression, ret: &CCExpression,
     let new_var = Statement::next_unused_var(&[context, &absts].concat());
 
     let p1_r = unpack_term(v_type, context, defs);
-    if let Err(msg) = p1_r { return Err(format!("While unpacking TypeAbs ({}/{}/{}), other error:\n\t{}", var, v_type.to_latex(), ret.to_latex(), msg)); }
+    if let Err(msg) = p1_r {
+        let ctx_str = Statement::ctx_str(context);
+        return Err(format!("While unpacking TypeAbs ({}/{}/{}), ctx: [{}], other error:\n\t{}", var, v_type.to_latex(), ret.to_latex(), ctx_str, msg));
+    }
     let p1 = p1_r.unwrap();
 
     let stmt = Statement {
@@ -95,7 +107,10 @@ fn unpack_type_abs(var: &str, v_type: &CCExpression, ret: &CCExpression,
     let new_ctx = [context, &vec![stmt.clone()]].concat();
 
     let p2_r = unpack_term(&ret.substitute(var, &stmt.subject), &new_ctx, defs);
-    if let Err(msg) = p2_r { return Err(format!("While unpacking TypeAbs ret ({}/{}/{}), other error:\n\t{}", var, v_type.to_latex(), ret.to_latex(), msg)); }
+    if let Err(msg) = p2_r {
+        let ctx_str = Statement::ctx_str(&new_ctx);
+        return Err(format!("While unpacking TypeAbs ret ({}/{}/{}), ctx: [{}], other error:\n\t{}", var, v_type.to_latex(), ret.to_latex(), ctx_str, msg));
+    }
     let p2 = p2_r.unwrap();
 
     let last = Judgement {
@@ -168,21 +183,26 @@ fn unpack_abs(var: &str, v_type: &CCExpression, ret: &CCExpression,
         subject: CCExpression::Var(new_var.to_string()),
         s_type: v_type.clone()
     };
-
-    let p1_r = unpack_term(&ret.substitute(var, &c_stmt.subject),
-                         &[context, &vec![c_stmt]].concat(),
-                         defs);
-    if let Err(msg) = p1_r { return Err(format!("While unpacking Abs ({}/{}/{}), other error:\n\t{}", var, v_type.to_latex(), ret.to_latex(), msg)); }
+    let new_ctx = [context, &vec![c_stmt.clone()]].concat();
+    let p1_r = unpack_term(&ret.substitute(var, &c_stmt.subject), &new_ctx, defs);
+    if let Err(msg) = p1_r {
+        let ctx_str = Statement::ctx_str(&new_ctx);
+        return Err(format!("While unpacking Abs ({}/{}/{}), ctx: [{}], other error:\n\t{}", var, v_type.to_latex(), ret.to_latex(), ctx_str, msg));
+    }
     let p1 = p1_r.unwrap();
 
+    let new_ret = p1.last().unwrap().statement.s_type.clone();
     let new_type = CCExpression::TypeAbs(
-        String::from(new_var),
+        new_var.to_string(),
         Box::new(v_type.clone()),
-        Box::new(p1.last().unwrap().statement.s_type.clone())
+        Box::new(new_ret.clone())
     );
 
     let p2_r = unpack_term(&new_type, context, defs);
-    if let Err(msg) = p2_r { return Err(format!("While unpacking Abs ret ({}/{}/{}), other error:\n\t{}", var, v_type.to_latex(), ret.to_latex(), msg)); }
+    if let Err(msg) = p2_r {
+        let ctx_str = Statement::ctx_str(context);
+        return Err(format!("While unpacking Abs ret ({}/{}/{}), ctx: [{}], other error:\n\t{}", var, v_type.to_latex(), ret.to_latex(), ctx_str, msg));
+    }
     let p2 = p2_r.unwrap();
 
     let last = Judgement {
@@ -202,26 +222,26 @@ fn unpack_appl(lhs: &CCExpression, rhs: &CCExpression,
                    context: &[Statement], defs: &[Definition]) -> Result<Vec<Judgement>, String> {
     let p1_r = unpack_term(lhs, context, defs);
     let p2_r = unpack_term(rhs, context, defs);
-
+    let ctx_str = Statement::ctx_str(context);
     if let Err(msg) = p1_r { return Err(format!(
-                "While unpacking Appl({}/{}), other error:\n\t{}",
-                lhs.to_latex(), rhs.to_latex(), msg)); }
+                "While unpacking Appl({}/{}), ctx: [{}], other error:\n\t{}",
+                lhs.to_latex(), rhs.to_latex(), ctx_str, msg)); }
     if let Err(msg) = p2_r { return Err(format!(
-                "While unpacking Appl({}/{}), other error:\n\t{}",
-                lhs.to_latex(), rhs.to_latex(), msg)); }
+                "While unpacking Appl({}/{}), ctx: [{}], other error:\n\t{}",
+                lhs.to_latex(), rhs.to_latex(), ctx_str, msg)); }
 
     let p1 = p1_r.unwrap();
     let p2 = p2_r.unwrap();
 
     let ret_type = p1.last().unwrap().statement.s_type.clone();
-    if let CCExpression::TypeAbs(_x, _v_type, inner_ret) = ret_type {
+    if let CCExpression::TypeAbs(x, _v_type, inner_ret) = ret_type {
         let last = Judgement {
             defs: vec![],
             context: context.to_vec(),
             statement: Statement {
                 subject: CCExpression::Application(Box::new(lhs.clone()),
                                                    Box::new(rhs.clone())),
-                s_type: *inner_ret
+                s_type: inner_ret.substitute(&x, rhs)
             }
         };
 
@@ -249,7 +269,7 @@ where T: Iterator<Item= &'a Judgement>
 pub fn unpack_term(term: &CCExpression, context: &[Statement], defs: &[Definition]) -> Result<Vec<Judgement>, String> {
 
     match term {
-        CCExpression::Star => unpack_star(context),
+        CCExpression::Star => unpack_star(context, defs),
         CCExpression::Sq => Err("Cannot unwrap Sq".to_string()),
         CCExpression::Prim => Err("Cannot unwrap Prim".to_string()),
         CCExpression::Var(x) => unpack_var(&x, context, defs),
@@ -401,6 +421,25 @@ mod tests {
                    ]);
         let refs = check_proof(&defs, &lines).unwrap();
         assert_eq!(lines.len(), refs.len());
+        let r_str: Vec<String> = refs.iter().filter_map(|x| Some(x.to_latex())).collect();
+        assert_eq!(r_str, vec![
+                   "sort",
+                   "var 0",
+                   "var 1",
+                   "var 2",
+                   "weak 1,0",
+                   "var 3",
+                   "weak 2,1",
+                   "var 5",
+                   "weak 3,2",
+                   "form 2,8",
+                   "form 1,9",
+                   "var 10",
+                   "weak 3,10",
+                   "form 10,12",
+                   "form 0,13",
+                   "var 14"
+        ]);
     }
 }
 
