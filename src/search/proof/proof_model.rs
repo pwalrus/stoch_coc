@@ -1,10 +1,10 @@
 
 use crate::model::def::{Definition};
 use crate::model::partial::{PartialSol};
+use crate::search::base::{SearchModel};
 
-use super::base::{SearchModel};
-use super::proof::subgoal::{next_sol_from_sol};
-use super::proof::finalize::{recursive_finalize};
+use super::subgoal::{next_sol_from_sol};
+use super::finalize::{recursive_finalize};
 
 pub struct ProofSearchModel {
     pub defs: Vec<Definition>

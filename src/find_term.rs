@@ -7,7 +7,7 @@ use crate::model::partial::{Goal, PartialSol};
 use crate::type_check::{check_proof};
 use crate::unpack_term::{unpack_term};
 
-use crate::search::proof_model::{ProofSearchModel};
+use crate::search::proof::{ProofSearchModel};
 use crate::search::control::{SearchControl};
 
 
