@@ -2,7 +2,7 @@ use crate::model::judgement::{Judgement};
 use crate::model::statement::{Statement};
 use crate::model::expression::{CCExpression};
 use crate::model::def::{Definition};
-use crate::model::rules::base::{do_type_sub};
+use crate::model::rules::{do_type_sub};
 
 fn unpack_remaining_context(ctx: &[Statement], defs: &[Definition]) -> Result<Vec<Judgement>, String> {
     if ctx.len() == 0 { return Ok(vec![]); }

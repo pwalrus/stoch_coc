@@ -1,5 +1,5 @@
 
-pub mod base;
+mod base;
 mod var;
 mod sort;
 mod weak;
@@ -8,4 +8,7 @@ mod appl;
 mod abst;
 mod conv;
 mod inst;
-pub mod ruleset;
+mod ruleset;
+
+pub use self::base::*;
+pub use self::ruleset::all_rules;

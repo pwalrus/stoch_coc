@@ -1,8 +1,8 @@
 
 use crate::model::judgement::{Judgement};
 use crate::model::def::{Definition};
-use crate::model::rules::ruleset::{all_rules};
-use crate::model::rules::base::{DerRule, abst_alternatives};
+use crate::model::rules::{all_rules};
+use crate::model::rules::{DerRule, abst_alternatives};
 use crate::model::proof::{LineRef};
 
 
@@ -104,7 +104,7 @@ pub fn check_proof(defs: &[Definition],
 mod tests {
     use super::*;
     use crate::parser::{parse_judgement, parse_definition};
-    use crate::model::rules::ruleset::all_rules;
+    use crate::model::rules::all_rules;
 
     #[test]
     fn simple_type_check() {
