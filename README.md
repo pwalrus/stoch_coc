@@ -202,3 +202,38 @@ represents:
 
 building upon the previous `\to` syntax.
 
+
+## Proof Typesetting
+
+For the Fitch/flag-style natural deduction proofs, [flagderiv](https://www.ctan.org/pkg/flagderiv) is a very nice LaTeX package.
+It also appears to be the one used in the text (Nederpelt,Geuvers 2014), which is convenient.
+
+There are many alternatives, which may be implemented later, [Logic Matters](https://www.logicmatters.net/latex-for-logicians/).
+
+In addition to the packages mentioned above, `flagderiv` requires one more import:
+
+```latex
+\usepackage{flagderiv}
+```
+
+Continueing with the above example judgement:
+
+```latex
+A : \ast \vdash \lambda x : A . x : \prod x : A . A
+```
+
+The full proof output will be in this format:
+
+```latex
+\begin{flagderiv}
+   \step*{$(0)$}{\ast : \square}{sort}
+   \assume*{}{A : \ast}{}
+   \step*{$(1)$}{A : \ast}{var 0}
+   \assume*{}{a : A}{}
+   \step*{$(2)$}{a : A}{var 1}
+   \step*{$(3)$}{A : \ast}{weak 1,1}
+   \conclude*[1]{$(4)$}{A \to A : \ast}{form 1,3}
+   \step*{$(5)$}{\lambda x : A . x : A \to A}{abst 2,4}
+\end{flagderiv}
+```
+
