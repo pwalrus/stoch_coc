@@ -1,5 +1,4 @@
 
-use crate::model::expression::CCExpression;
 use crate::model::judgement::{Judgement};
 use crate::model::statement::{Statement};
 use crate::model::rules::base::{DerRule};
@@ -38,6 +37,7 @@ impl DerRule for ConvRule {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::model::expression::CCExpression;
 
     #[test]
     fn simple_conv() {

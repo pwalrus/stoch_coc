@@ -1,8 +1,36 @@
 # stoch_coc
 
-A stochastic term finder for the calculus of constructions. Implemented in rust.
+A stochastic term finder for the calculus of constructions. LaTeX syntax for input and output. Implemented in rust.
 
-No CLI or GUI currently written. Code executed via unit tests.
+# Setup
+
+Only [Rust](https://www.rust-lang.org/tools/install) needs to be installed.
+
+Once complete, run tests with:
+
+```bash
+cargo test
+```
+
+# Usage
+
+To find a term (full judgement actually) supply it as arugment. Example, the simple tautology: `A \to A`:
+
+```bash
+cargo run -- "A \\to A"
+```
+
+And the output will be produced:
+
+```latex
+A : \ast \vdash \lambda b : A . b : A \to A
+```
+
+The full proof in `flagderiv` output can also be produced with an additional flag:
+
+```bash
+cargo run -- "A \\to A" --flagderiv
+```
 
 ## Syntax
 
