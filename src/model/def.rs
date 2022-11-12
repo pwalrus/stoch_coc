@@ -24,6 +24,16 @@ impl Definition {
         );
     }
 
+    pub fn arg_statements(&self) -> Vec<Statement> {
+        self.args.iter().map(
+            |x| Statement {
+                subject: CCExpression::Var(x.to_string()),
+                s_type: self.context.iter().filter(
+                    |stmt| stmt.subject.var_str() == Some(x.to_string())
+                    ).map(|stmt| stmt.s_type.clone()).next().unwrap()
+            }).collect()
+    }
+
     pub fn type_list(&self) -> Option<Vec<CCExpression>> {
         let output: Vec<CCExpression> = self.args.iter().filter_map(
             |x| self.context.iter().find(
@@ -59,6 +69,9 @@ mod tests {
 
         assert_eq!(def1.to_latex(),
                    "x : A \\vartriangleright ex \\langle x \\rangle := x : A");
+        assert_eq!(def1.arg_statements().iter().map(
+                |x| x.to_latex()
+                ).collect::<Vec<String>>(), ["x : A"]);
     }
 }
 
