@@ -97,11 +97,6 @@ impl ProofStrat for DefKnown {
         let all_known: Vec<Statement> = [full_context, usable_conc].concat();
         let matches = find_matches(&defs, &all_known);
 
-        println!("matches: {}", matches.iter().map(
-                |(def, subs)| def.to_latex() + "\n\t" + &subs.iter().map(
-                    |x| x.to_latex()).collect::<Vec<String>>().join("\n\t")
-                ).collect::<Vec<String>>().join("\n"));
-
         let goals: Vec<Goal> = matches.iter().filter(
             |(def, subs)| !type_already_known(&make_new_type(&def, &subs), &all_known)
             ).map(

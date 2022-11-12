@@ -4,6 +4,7 @@ mod untypeabs;
 mod incontext;
 mod known_arrow;
 mod prod_elim;
+mod neg_elim;
 mod def_known;
 mod stratset;
 
