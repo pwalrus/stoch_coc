@@ -41,11 +41,12 @@ pub fn find_term(s_type: &CCExpression, context: &[Statement], defs: &[Definitio
                 if full_lines.is_err() {
                     return Err(full_lines.unwrap_err());
                 }
-                let refs_o = check_proof(&[], &full_lines.as_ref().unwrap());
+                let refs_o = check_proof(defs, &full_lines.as_ref().unwrap());
                 match refs_o {
                     Ok(refs) => Ok(Proof { lines: full_lines.as_ref().unwrap().to_vec(), refs: refs }),
                     Err(x) => {
-                        println!("lines failed check:\n{}", full_lines.as_ref().unwrap().iter().map(|x| x.to_latex()).collect::<Vec<String>>().join("\n"));
+                        eprintln!("lines failed check:\n{}", full_lines.as_ref().unwrap().iter().map(|x| x.to_latex()).collect::<Vec<String>>().join("\n"));
+                        eprintln!("err: {}", x);
                         Err(x)
                     }
                 }
@@ -61,7 +62,8 @@ pub fn find_term(s_type: &CCExpression, context: &[Statement], defs: &[Definitio
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parser::{parse_judgement};
+    use crate::model::judgement::Judgement;
+    use crate::parser::{parse_judgement, parse_definition};
 
     #[test]
     fn simple_find() {
@@ -124,5 +126,20 @@ mod tests {
                 panic!();
             }
         }
+    }
+
+    #[test]
+    fn find_double_neg_with_def() {
+        let jdg: Judgement = parse_judgement(
+            "D:\\ast \\vdash y: \\neg \\neg D \\to D"
+            ).unwrap();
+        let def = parse_definition("A : \\ast \\vartriangleright lem \\langle A \\rangle := \\independent : \\neg A \\vee A").unwrap();
+        let t1 = jdg.statement.s_type.clone();
+        let proof = find_term(&t1, &jdg.context, &[def]);
+        assert!(proof.is_ok());
+        assert_eq!(
+            proof.unwrap().lines.last().unwrap().statement.subject.to_latex(),
+            "\\lambda b : \\neg \\neg D . lem \\langle D \\rangle D (\\lambda c : \\neg D . b c D) (\\lambda c : D . c)"
+            );
     }
 }

@@ -277,5 +277,20 @@ mod tests {
             ).unwrap();
         assert!(rule.validate(Some(&jdg1), Some(&jdg2), &jdg3));
     }
+
+    #[test]
+    fn direct_inst_test() {
+        let def = parse_definition("A : \\ast \\vartriangleright lem \\langle A \\rangle := \\independent : \\neg A \\vee A").unwrap();
+        let rules = all_rules(&[def]);
+        let rule = rules.iter().find(|x| x.name() == "inst").unwrap();
+        let jdg1: Judgement = parse_judgement(
+            "D : \\ast \\vdash D : \\ast"
+            ).unwrap();
+        let jdg2: Judgement = parse_judgement(
+            "D : \\ast, a : \\neg \\neg D \\vdash lem \\langle D \\rangle : \\neg D \\vee D"
+            ).unwrap();
+
+        assert!(rule.validate_many(&[jdg1], &jdg2).is_some());
+    }
 }
 
