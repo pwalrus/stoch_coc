@@ -13,6 +13,8 @@ fn all_alpha_num(tokens: &[String]) -> bool {
         String::from(":"),
         String::from("("),
         String::from(")"),
+        String::from("{"),
+        String::from("}"),
         String::from("\\lambda"),
         String::from("\\ast"),
         String::from("\\square"),
@@ -35,11 +37,17 @@ fn all_alpha_num(tokens: &[String]) -> bool {
 }
 
 fn is_balanced(tokens: &[String]) -> bool {
+    return is_balanced_custom(tokens,
+            &["(".to_string(), "\\langle".to_string()],
+            &[")".to_string(), "\\rangle".to_string()]);
+}
+
+fn is_balanced_custom(tokens: &[String], left: &[String], right: &[String]) -> bool {
     let mut balance: i32 = 0;
     for token in tokens {
-        if ["(".to_string(), "\\langle".to_string()].contains(token) {
+        if left.contains(token) {
             balance += 1;
-        } else if [")".to_string(), "\\rangle".to_string()].contains(token) {
+        } else if right.contains(token) {
             balance -= 1;
         }
     }
@@ -60,8 +68,23 @@ fn tokenize(expr: &str) -> Vec<String> {
             }
             output.push(String::from(":="));
             start = idx + 2;
-        }
-        else if ['.', ':', '(', ')', ','].contains(&c) {
+        } else if expr[idx..].starts_with("=_{") {
+            output.push(String::from("=_{"));
+            let mut end_idx: usize = idx;
+            for (idx2, c2) in expr[idx+3..].chars().enumerate() {
+                if end_idx == idx {
+                    let sub_tok = tokenize(&expr[idx+3..idx+3+idx2]);
+                    if c2 == '}' && is_balanced_custom(
+                        &expr[idx+3..idx+3+idx2].chars().map(|x| x.to_string()).collect::<Vec<String>>(),
+                        &['{'.to_string()], &['}'.to_string()]) {
+                        end_idx = idx2 + idx + 3;
+                        output.extend(sub_tok);
+                        output.push(String::from("}"));
+                        start = end_idx + 1;
+                    }
+                }
+            }
+        } else if ['.', ':', '(', ')', ','].contains(&c) {
             if found {
                 output.push(String::from(&expr[start..idx]));
                 found = false;
@@ -656,6 +679,18 @@ mod tests {
                    String::from("z"),
                    String::from(":"),
                    String::from("C")
+        ]);
+    }
+
+    #[test]
+    fn tokenize_equality() {
+        let tokens = tokenize(&String::from(" x =_{A_{2}} y "));
+        assert_eq!(tokens, [
+                   String::from("x"),
+                   String::from("=_{"),
+                   String::from("A_{2}"),
+                   String::from("}"),
+                   String::from("y")
         ]);
     }
 
