@@ -115,6 +115,32 @@ fn tokenize(expr: &str) -> Vec<String> {
     return output
 }
 
+fn section_multi_delim<'a>(tokens: &'a[String], delims: &'a[String]) -> Vec<Vec<&'a[String]>> {
+    let mut output = vec![];
+
+    if delims.len() == 0 {
+        let new_row = vec![tokens];
+        output.push(new_row);
+        return output;
+    }
+
+    for (idx, c) in tokens.iter().enumerate() {
+        if c == &delims[0] {
+            let sub_sol = section_multi_delim(&tokens[idx+1..], &delims[1..]);
+            for sub in sub_sol {
+                if idx > 0 {
+                    let new_row = [vec![&tokens[0..idx]], sub].concat();
+                    output.push(new_row);
+                } else {
+                    output.push(sub);
+                }
+            }
+        }
+    }
+
+    return output;
+}
+
 struct Consumed {
     expr: CCExpression,
     remain: Vec<String>
@@ -420,26 +446,27 @@ impl VeeWedgeConsumer {
 impl TokenConsumer for VeeWedgeConsumer {
 
     fn consume(&self, tokens: &[String]) -> Option<Consumed> {
+        let delims = [["\\vee".to_string()], ["\\wedge".to_string()]];
         if tokens.len() > 2 {
-            for (idx1, token1) in tokens.iter().enumerate() {
-                if ["\\vee".to_string(), "\\wedge".to_string()].contains(&token1) {
-                    let lhs = find_expression(&tokens[0..idx1]);
-                    let rhs = find_expression(&tokens[idx1+1..]);
-                    match (lhs, rhs) {
-                        (Some(a), Some(c)) => {
-                            if token1 == "\\vee" {
+            for delim in delims {
+                let sections = section_multi_delim(tokens, &delim);
+                for section in sections {
+                    if section.len() == 2 {
+                        let lhs = find_expression(&section[0]);
+                        let rhs = find_expression(&section[1]);
+                        match (lhs, rhs) {
+                            (Some(a), Some(c)) => {
                                 return Some(Consumed {
-                                    expr: VeeWedgeConsumer::fab_or_type(&a, &c),
-                                    remain: vec![]
-                                });
-                            } else if token1 == "\\wedge" {
-                                return Some(Consumed {
-                                    expr: VeeWedgeConsumer::fab_and_type(&a, &c),
+                                    expr: if delim[0] == "\\vee" {
+                                        VeeWedgeConsumer::fab_or_type(&a, &c)
+                                    } else {
+                                        VeeWedgeConsumer::fab_and_type(&a, &c)
+                                    },
                                     remain: vec![]
                                 });
                             }
-                        },
-                        _ => {}
+                            _ => {}
+                        }
                     }
                 }
             }
@@ -680,6 +707,34 @@ mod tests {
                    String::from(":"),
                    String::from("C")
         ]);
+    }
+
+    #[test]
+    fn tokenize_section() {
+        let tokens = tokenize(&String::from(" \\lambda x:A y.B x "));
+        let delim = ["\\lambda".to_string(), ":".to_string(), ".".to_string()];
+        let sections = section_multi_delim(&tokens, &delim);
+        assert_eq!(sections, vec![vec![
+                   vec!["x".to_string()],
+                   vec!["A".to_string(), "y".to_string()],
+                   vec!["B".to_string(), "x".to_string()]
+        ]]);
+    }
+
+    #[test]
+    fn tokenize_section2() {
+        let tokens = tokenize(&String::from(" A \\vee B \\vee C "));
+        let delim = ["\\vee".to_string()];
+        let sections = section_multi_delim(&tokens, &delim);
+        assert_eq!(sections, vec![
+                   vec![
+                   vec!["A".to_string()],
+                   vec!["B".to_string(), "\\vee".to_string(), "C".to_string()],
+                   ],
+                   vec![
+                   vec!["A".to_string(), "\\vee".to_string(), "B".to_string()],
+                   vec!["C".to_string()],
+        ]]);
     }
 
     #[test]
