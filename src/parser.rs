@@ -128,17 +128,33 @@ fn section_multi_delim<'a>(tokens: &'a[String], delims: &'a[String]) -> Vec<Vec<
         if c == &delims[0] {
             let sub_sol = section_multi_delim(&tokens[idx+1..], &delims[1..]);
             for sub in sub_sol {
-                if idx > 0 {
-                    let new_row = [vec![&tokens[0..idx]], sub].concat();
-                    output.push(new_row);
-                } else {
-                    output.push(sub);
-                }
+                let new_row = [vec![&tokens[0..idx]], sub].concat();
+                output.push(new_row);
             }
         }
     }
 
     return output;
+}
+
+fn comma_delim_expressions(tokens: &[String]) -> Option<Vec<CCExpression>> {
+    let mut output = vec![];
+    let mut last: usize = 0;
+    for (idx, token) in tokens.iter().enumerate() {
+        if idx >= last && token == "," {
+            if let Some(expr) = find_expression(&tokens[last..idx]) {
+                output.push(expr);
+                last = idx + 1;
+            }
+        } else if idx >= last && idx == tokens.len() - 1 {
+            if let Some(expr) = find_expression(&tokens[last..]) {
+                output.push(expr);
+                return Some(output);
+            }
+        }
+    }
+
+    return None;
 }
 
 struct Consumed {
@@ -312,34 +328,26 @@ struct DefConsumer {}
 
 impl TokenConsumer for DefConsumer {
     fn consume(&self, tokens: &[String]) -> Option<Consumed> {
-        let mut args: Vec<CCExpression> = vec![];
-        let mut last: usize = 2;
-
         if tokens.len() <= 2 || tokens[1] != "\\langle" {
             return None
         }
-
-        let name = tokens[0].clone();
-
-        for (idx, token) in tokens.iter().enumerate() {
-            if idx >= last && token == "," {
-                if let Some(expr) = find_expression(&tokens[last..idx]) {
-                    args.push(expr);
-                    last = idx + 1;
-                }
-            } else if idx >= last && token == "\\rangle" {
-                if let Some(expr) = find_expression(&tokens[last..idx]) {
-                    args.push(expr);
-                    let output = CCExpression::Def(
-                        name,
-                        args
-                        );
-                    return Some(Consumed {
-                        expr: output,
-                        remain: tokens[idx+1..].to_vec()
-                    });
-
-                }
+        let delim = ["\\langle".to_string(), "\\rangle".to_string()];
+        let sections = section_multi_delim(tokens, &delim);
+        println!("sections: {:?}", sections);
+        for section in sections {
+            if section.len() >= 2 {
+                println!("section: {:?}", section);
+                let name = section[0][0].clone();
+                let o_args = comma_delim_expressions(section[1]);
+                if o_args.is_none() { return None; }
+                let output = CCExpression::Def(
+                    name,
+                    o_args.unwrap()
+                    );
+                return Some(Consumed {
+                    expr: output,
+                    remain: if section.len() > 2 { section[2].to_vec() } else { vec![] }
+                });
             }
         }
 
@@ -715,6 +723,7 @@ mod tests {
         let delim = ["\\lambda".to_string(), ":".to_string(), ".".to_string()];
         let sections = section_multi_delim(&tokens, &delim);
         assert_eq!(sections, vec![vec![
+                   vec![],
                    vec!["x".to_string()],
                    vec!["A".to_string(), "y".to_string()],
                    vec!["B".to_string(), "x".to_string()]
