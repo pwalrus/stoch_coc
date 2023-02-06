@@ -281,8 +281,7 @@ impl TokenConsumer for AbsConsumer {
                                     });
                                 }
                             }
-                       }
-
+                        }
                     }
                 }
             }
@@ -333,10 +332,8 @@ impl TokenConsumer for DefConsumer {
         }
         let delim = ["\\langle".to_string(), "\\rangle".to_string()];
         let sections = section_multi_delim(tokens, &delim);
-        println!("sections: {:?}", sections);
         for section in sections {
             if section.len() >= 2 {
-                println!("section: {:?}", section);
                 let name = section[0][0].clone();
                 let o_args = comma_delim_expressions(section[1]);
                 if o_args.is_none() { return None; }
@@ -351,6 +348,76 @@ impl TokenConsumer for DefConsumer {
             }
         }
 
+        return None;
+    }
+}
+
+struct EqualsConsumer {}
+
+impl EqualsConsumer {
+
+    fn fab_arrow_type(lhs: &CCExpression, rhs: &CCExpression) -> CCExpression {
+        let absts = Statement::abstractions(rhs);
+        let a_terms: Vec<String> = absts.iter().map(|stmt| stmt.subject.to_latex()).collect();
+        let var = next_unused_var(&[rhs.free_var(), a_terms].concat());
+        let expr = CCExpression::TypeAbs(
+            var.to_string(),
+            Box::new(lhs.clone()),
+            Box::new(rhs.clone())
+            );
+        return expr;
+    }
+
+    fn fab_application_type(lhs: &CCExpression, rhs: &CCExpression) -> CCExpression {
+        let expr = CCExpression::Application(
+            Box::new(lhs.clone()),
+            Box::new(rhs.clone())
+            );
+        return expr;
+    }
+
+    fn fab_equality(lhs: &CCExpression, e_type: &CCExpression, rhs: &CCExpression) -> CCExpression {
+        let l_absts = Statement::abstractions(lhs);
+        let l_terms: Vec<String> = l_absts.iter().map(|stmt| stmt.subject.to_latex()).collect();
+        let r_absts = Statement::abstractions(rhs);
+        let r_terms: Vec<String> = r_absts.iter().map(|stmt| stmt.subject.to_latex()).collect();
+        let e_absts = Statement::abstractions(e_type);
+        let e_terms: Vec<String> = e_absts.iter().map(|stmt| stmt.subject.to_latex()).collect();
+        let var = next_unused_cap_var(&[lhs.free_var(), e_type.free_var(),
+            rhs.free_var(), l_terms, e_terms, r_terms].concat());
+        let prop_type = Self::fab_arrow_type(e_type, &CCExpression::Star);
+        let l_prop = Self::fab_application_type(&CCExpression::Var(var.to_string()), lhs);
+        let r_prop = Self::fab_application_type(&CCExpression::Var(var.to_string()), rhs);
+        let implication = Self::fab_arrow_type(&l_prop, &r_prop);
+        let expr = CCExpression::TypeAbs(
+            var.to_string(),
+            Box::new(prop_type),
+            Box::new(implication)
+            );
+        return expr;
+    }
+}
+
+impl TokenConsumer for EqualsConsumer {
+    fn consume(&self, tokens: &[String]) -> Option<Consumed> {
+        let delim = ["=_{".to_string(), "}".to_string()];
+        let sections = section_multi_delim(tokens, &delim);
+        for section in sections {
+            if section.len() == 3 {
+                let lhs = find_expression(&section[0]);
+                let e_type = find_expression(&section[1]);
+                let rhs = find_expression(&section[2]);
+                match (lhs, e_type, rhs) {
+                    (Some(l), Some(e), Some(r)) => {
+                        return Some(Consumed {
+                            expr: EqualsConsumer::fab_equality(&l, &e, &r),
+                            remain: vec![]
+                        });
+                    },
+                    (_, _, _) => {}
+                }
+            }
+        }
         return None;
     }
 }
@@ -499,7 +566,8 @@ fn consume_expressions(tokens: &[String]) -> Vec<CCExpression> {
         &NegConsumer{},
         &VeeWedgeConsumer{},
         &AbsConsumer{},
-        &ToConsumer{}
+        &ToConsumer{},
+        &EqualsConsumer{}
     ];
 
     for consumer in consumers {
@@ -945,5 +1013,18 @@ mod tests {
         for s in samples {
             assert_eq!(parse(&s).unwrap().to_latex(), s);
         }
+    }
+
+    #[test]
+    fn parse_equality() {
+        let expr = "x =_{A} y";
+        let expr2 = "\\prod P : A \\to \\ast . (P x) \\to (P y)";
+        let tokens = tokenize(&expr);
+        let tree = find_expression(&tokens);
+        let tokens2 = tokenize(&expr2);
+        let tree2 = find_expression(&tokens2);
+        assert_ne!(tree, None);
+        assert_ne!(tree2, None);
+        assert!(tree.unwrap().alpha_equiv(&tree2.unwrap()));
     }
 }
